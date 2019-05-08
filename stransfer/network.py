@@ -113,6 +113,9 @@ class StyleNetwork(nn.Sequential):
             list(self._modules.items())[:(last_index + 1)])
 
     def forward(self, style_image, content_image):
+
+        # TODO maybe there is no need to create a new sequential
+        # model here, and we can just reuse this instance
         temp_net = nn.Sequential()
 
         style_losses = []
@@ -140,3 +143,14 @@ class StyleNetwork(nn.Sequential):
                 style_losses.append(style_loss)
 
         return style_losses, content_losses
+
+
+def get_content_optimizer(content_img):
+    # we want to apply the gradient to the content image, so we
+    # need to mark it as such
+
+    # TODO find out which is the best optimizer in this case
+    # optimizer = optim.LBFGS([content_img.requires_grad_()])
+    optimizer = optim.Adam([content_img.requires_grad_()])
+
+    return optimizer

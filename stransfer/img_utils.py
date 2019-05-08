@@ -18,7 +18,9 @@ def image_loader(image_name):
 
     # fake batch dimension required to fit network's input dimensions
     image = load_transforms(image).unsqueeze(0)
-    return image.to(constants.DEVICE, torch.float)
+    image = image.to(constants.DEVICE, torch.float)
+
+    return image
 
 
 def imshow(tensor, title=None):
