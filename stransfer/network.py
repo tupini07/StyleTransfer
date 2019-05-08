@@ -1,12 +1,12 @@
 import copy
+from collections import OrderedDict
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
-from collections import OrderedDict
-import pudb
+
 from stransfer import constants
 
 _VGG = torchvision.models.vgg19(pretrained=True)
@@ -20,11 +20,48 @@ _VGG = (_VGG
 
 
 class StyleLoss(nn.Module):
-    pass
+    def __init__(self, target_feature):
+        super().__init__()
+
+        # TODO Check that detach is actually necesary here
+        # Here the target is the conv layer which we're taking as reference
+        # as the style source
+        self.target = self.gram_matrix(target_feature).detach()
+
+    def gram_matrix(self, input):
+        # TODO: check that gram matrix implementation is actually correct
+
+        # The size would be [batch_size, depth, height, width]
+        # in our style transfer application `bs` should always be 1
+        bs, depth, height, width = input.size()
+
+        features = input.view(bs * depth, height * width)
+
+        G = torch.mm(features, features.t())  # compute the gram product
+
+        # we 'normalize' the values of the gram matrix
+        # by dividing by the number of element in each feature maps.
+        return G.div(bs * depth * height * width)
+
+    def forward(self, input):
+        G = self.gram_matrix(input)
+        self.loss = F.mse_loss(G, self.target)
+        return input
 
 
 class ContentLoss(nn.Module):
-    pass
+    def __init__(self, target,):
+        super().__init__()
+
+        # Here the target is the conv layer which we're taking as reference
+        # as the content source
+        self.target = target.detach()
+
+    def forward(self, input):
+        # Content loss is just the per pixel distance between an input and
+        # the target
+        self.loss = F.mse_loss(input, self.target)
+        return input
 
 
 class StyleNetwork(nn.Sequential):
@@ -102,3 +139,4 @@ class StyleNetwork(nn.Sequential):
                 temp_net.add_module(f"{name}_style_loss", style_loss)
                 style_losses.append(style_loss)
 
+        return style_losses, content_losses
