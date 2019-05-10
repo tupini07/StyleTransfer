@@ -82,8 +82,11 @@ class StyleNetwork(nn.Sequential):
         'Conv2d_5',
     ]
 
-    def __init__(self, *args):
+    def __init__(self, style_image, content_image, *args):
         super().__init__(*args)
+
+        self._content_loss_nodes = []
+        self._style_loss_nodes = []
 
         vgg = copy.deepcopy(_VGG)
 
@@ -99,50 +102,50 @@ class StyleNetwork(nn.Sequential):
             layer_name = type(layer).__name__ + f"_{i}"
             self.add_module(layer_name, layer)
 
-        # remove all layers after old the last content/style loss
-        # first find out which is the first relevant index
-        last_index = 0
-        for i, (name, _) in enumerate(self.named_children()):
-            if any(name in l for l in [self.style_layers,
-                                       self.content_layers]):
-                last_index = i
-
-        # then just remove the extra layers by
-        # resetting network "modules"
-        self._modules = OrderedDict(
-            list(self._modules.items())[:(last_index + 1)])
-
-    def forward(self, style_image, content_image):
-
-        # TODO maybe there is no need to create a new sequential
-        # model here, and we can just reuse this instance
-        temp_net = nn.Sequential()
-
-        style_losses = []
-        content_losses = []
-
-        # if the current layer is either one of the style or
-        # content layers we specified above then we want to calculate
-        # the style/content loss appropriately.
-        # see https://forums.fast.ai/t/pytorch-best-way-to-get-at-intermediate-layers-in-vgg-and-resnet/5707/2
-        for name, layer in self.named_children():
-            temp_net.add_module(name, layer)
-
-            if name in self.content_layers:
+            if layer_name in self.content_layers:
                 # TODO: try not detaching
                 # we detach since we don't want to calculate gradients based on this
-                layer_output = temp_net(content_image).detach()
+                layer_output = self(content_image).detach()
                 content_loss = ContentLoss(layer_output)
-                temp_net.add_module(f"{name}_content_loss", content_loss)
-                content_losses.append(content_loss)
+                self.add_module(f"{layer_name}_content_loss", content_loss)
+                self._content_loss_nodes.append(content_loss)
 
-            if name in self.style_layers:
-                layer_output = temp_net(style_image).detach()
+            if layer_name in self.style_layers:
+                # TODO: try not detaching
+                layer_output = self(style_image).detach()
                 style_loss = StyleLoss(layer_output)
-                temp_net.add_module(f"{name}_style_loss", style_loss)
-                style_losses.append(style_loss)
+                self.add_module(f"{layer_name}_style_loss", style_loss)
+                self._style_loss_nodes.append(style_loss)
 
-        return style_losses, content_losses
+    def _get_total_current_content_loss(self):
+        """
+        Returns the sum of all the `loss` present in all
+        *content* nodes
+        """
+
+        return torch.stack([x.loss for x in self._content_loss_nodes]).sum()
+
+    def _get_total_current_style_loss(self):
+        """
+        Returns the sum of all the `loss` present in all
+        *style* nodes
+        """
+
+        return torch.stack([x.loss for x in self._style_loss_nodes]).sum()
+
+    def st_forward(self, style_image, content_image):
+        """
+        Custom forward method. Applies the standard
+        Sequential model forward to calculate the losses
+        then return the total losses for content loss and style loss
+        """
+
+        # first pass content image and get total loss
+        self(content_image)
+        total_content_loss = self._get_total_current_content_loss()
+        total_style_loss = self._get_total_current_style_loss()
+
+        return total_style_loss, total_content_loss
 
 
 def get_content_optimizer(content_img):
