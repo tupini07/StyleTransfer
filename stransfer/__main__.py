@@ -23,9 +23,16 @@ def run_static_style_transfer(style_path, content_path, steps=220):
         content_image.data.clamp_(0, 1)
 
         optimizer.zero_grad()
-        style_loss, content_loss = st_net.st_forward(style_image, content_image)
+
+        # pass content image through net
+        st_net(content_image)
+
+        # get losses
+        style_loss = st_net.get_total_current_style_loss()
+        content_loss = st_net.get_total_current_content_loss() 
 
         total_loss = style_loss + content_loss
+        
         print(total_loss)
         total_loss.backward()
 
@@ -33,7 +40,7 @@ def run_static_style_transfer(style_path, content_path, steps=220):
 
     # TODO check if this is necessary
     content_image.data.clamp_(0, 1)
-
+    
     return content_image
 
 

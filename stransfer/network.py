@@ -117,7 +117,7 @@ class StyleNetwork(nn.Sequential):
                 self.add_module(f"{layer_name}_style_loss", style_loss)
                 self._style_loss_nodes.append(style_loss)
 
-    def _get_total_current_content_loss(self):
+    def get_total_current_content_loss(self):
         """
         Returns the sum of all the `loss` present in all
         *content* nodes
@@ -125,27 +125,13 @@ class StyleNetwork(nn.Sequential):
 
         return torch.stack([x.loss for x in self._content_loss_nodes]).sum()
 
-    def _get_total_current_style_loss(self):
+    def get_total_current_style_loss(self):
         """
         Returns the sum of all the `loss` present in all
         *style* nodes
         """
 
         return torch.stack([x.loss for x in self._style_loss_nodes]).sum()
-
-    def st_forward(self, style_image, content_image):
-        """
-        Custom forward method. Applies the standard
-        Sequential model forward to calculate the losses
-        then return the total losses for content loss and style loss
-        """
-
-        # first pass content image and get total loss
-        self(content_image)
-        total_content_loss = self._get_total_current_content_loss()
-        total_style_loss = self._get_total_current_style_loss()
-
-        return total_style_loss, total_content_loss
 
 
 def get_content_optimizer(content_img):
