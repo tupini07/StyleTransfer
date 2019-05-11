@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 click = "*"
 torch = "*"
+tqdm = "*"
 torchvision = "*"
 matplotlib = "*"
 pylint = "*"

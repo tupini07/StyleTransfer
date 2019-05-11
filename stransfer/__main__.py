@@ -1,5 +1,6 @@
 import click
 from stransfer import img_utils, network
+from tqdm import tqdm
 
 
 def run_static_style_transfer(style_path, content_path, steps=220):
@@ -18,7 +19,8 @@ def run_static_style_transfer(style_path, content_path, steps=220):
 
     optimizer = network.get_content_optimizer(content_image)
 
-    for step in range(steps):
+    for step in tqdm(range(steps)):
+        def closure():
         # clamp content image in place each step
         content_image.data.clamp_(0, 1)
 
