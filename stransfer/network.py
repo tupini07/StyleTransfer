@@ -155,15 +155,15 @@ class StyleNetwork(nn.Sequential):
         return torch.stack([x.loss for x in self._style_loss_nodes]).sum()
 
 
-def get_content_optimizer(content_img):
+def get_content_optimizer(input_img):
     # we want to apply the gradient to the content image, so we
     # need to mark it as such
 
     # TODO find out which is the best optimizer in this case
-    optimizer = optim.LBFGS([content_img.requires_grad_()])
-    # optimizer = optim.Adam([content_img.requires_grad_()])
-    # optimizer = optim.Adadelta([content_img.requires_grad_()])
-    # optimizer = optim.Adamax([content_img.requires_grad_()])
-    # optimizer = optim.SGD([content_img.requires_grad_()])
+    # optimizer = optim.LBFGS([input_img.requires_grad_()])
+    optimizer = optim.Adam([input_img.requires_grad_()])
+    # optimizer = optim.Adadelta([input_img.requires_grad_()])
+    # optimizer = optim.Adamax([input_img.requires_grad_()])
+    # optimizer = optim.SGD([input_img.requires_grad_()])
 
     return optimizer
