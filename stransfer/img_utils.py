@@ -12,8 +12,6 @@ def image_loader(image_name):
     load_transforms = transforms.Compose([
         transforms.Resize(constants.IMSIZE),  # scale imported image
         transforms.ToTensor(),  # transform it into a torch tensor
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],  # normalize image using ImageNet mean and std
-                             std=[0.229, 0.224, 0.225]),
     ])
 
     # fake batch dimension required to fit network's input dimensions
@@ -23,13 +21,11 @@ def image_loader(image_name):
     return image
 
 
-def imshow(tensor, title=None):
+def imshow(tensor, path="out.bmp"):
     image = tensor.cpu().clone()  # we clone the tensor to not do changes on it
     image = image.squeeze(0)      # remove the fake batch dimension
 
     tpil = transforms.ToPILImage()
     image = tpil(image)
-    plt.imshow(image)
-    if title is not None:
-        plt.title(title)
-    plt.pause(0.001)  # pause a bit so that plots are updated
+    
+    image.save(path)

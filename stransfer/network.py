@@ -64,6 +64,22 @@ class ContentLoss(nn.Module):
         return input
 
 
+class Normalization(nn.Module):
+    def __init__(self, mean, std):
+        super().__init__()
+        # .view the mean and std to make them [C x 1 x 1] so that they can
+        # directly work with image Tensor of shape [B x C x H x W].
+        # B is batch size. C is number of channels. H is height and W is width.
+        self.mean = torch.tensor(
+            mean).view(-1, 1, 1).type(torch.FloatTensor).to(constants.DEVICE)
+        self.std = torch.tensor(
+            std).view(-1, 1, 1).type(torch.FloatTensor).to(constants.DEVICE)
+
+    def forward(self, img):
+        # normalize img
+        return (img - self.mean) / self.std
+
+
 class StyleNetwork(nn.Sequential):
 
     content_layers = [  # from where image content will be taken
@@ -89,6 +105,11 @@ class StyleNetwork(nn.Sequential):
         self._style_loss_nodes = []
 
         vgg = copy.deepcopy(_VGG)
+
+        self.add_module('normalization', Normalization(
+            # normalize image using ImageNet mean and std
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]).to(constants.DEVICE))
 
         i = 0
         for layer in vgg:
@@ -139,7 +160,10 @@ def get_content_optimizer(content_img):
     # need to mark it as such
 
     # TODO find out which is the best optimizer in this case
-    # optimizer = optim.LBFGS([content_img.requires_grad_()])
-    optimizer = optim.Adam([content_img.requires_grad_()])
+    optimizer = optim.LBFGS([content_img.requires_grad_()])
+    # optimizer = optim.Adam([content_img.requires_grad_()])
+    # optimizer = optim.Adadelta([content_img.requires_grad_()])
+    # optimizer = optim.Adamax([content_img.requires_grad_()])
+    # optimizer = optim.SGD([content_img.requires_grad_()])
 
     return optimizer
