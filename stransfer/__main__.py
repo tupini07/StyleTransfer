@@ -85,10 +85,10 @@ def analyze_static_style_transfer(style_path, content_path, steps=220, dir="", o
     st_net = network.StyleNetwork(style_image, content_image)
 
     # start from content image
-    input_image = content_image.clone()
+    # input_image = content_image.clone()
 
     # or start from random image
-    # input_image = torch.randn(content_image.data.size(), device=constants.DEVICE)
+    input_image = torch.randn(content_image.data.size(), device=constants.DEVICE)
 
     if optimizer == torch.optim.SGD:
         optimizer = optimizer([input_image.requires_grad_()], lr=0.01, momentum=0.9)
@@ -148,7 +148,7 @@ def analyze_static_style_transfer(style_path, content_path, steps=220, dir="", o
 
         ########
         best_loss = min(metric_losses)
-        print(best_loss)
+        # print(best_loss)
         
         with open(dpath + "results.txt", "a") as ff:
             ff.write(
@@ -174,6 +174,8 @@ if __name__ == "__main__":
     # cli(**{}) # suppress warning
 
     # run_static_style_transfer(1, 1, 500, "Adam")
+    analyze_static_style_transfer(1, 1, 500, "LBFGS", torch.optim.LBFGS)
+    analyze_static_style_transfer(1, 1, 500, "Adam", torch.optim.Adam)
     analyze_static_style_transfer(1, 1, 500, "Adadelta", torch.optim.Adadelta)
     analyze_static_style_transfer(1, 1, 500, "Adamax", torch.optim.Adamax)
     analyze_static_style_transfer(1, 1, 500, "SGD", torch.optim.SGD)
