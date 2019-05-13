@@ -1,11 +1,13 @@
+import datetime
+import logging
+
 import click
-from stransfer import img_utils, network, constants
+import torch
 from tqdm import tqdm
 
+from stransfer import c_logging, constants, img_utils, network
 
-import datetime
-
-import torch
+LOGGER = logging.getLogger(__name__)
 
 
 def run_static_style_transfer(style_path, content_path, steps=220, dir=""):
@@ -59,7 +61,6 @@ def run_static_style_transfer(style_path, content_path, steps=220, dir=""):
 
         optimizer.step(closure)
 
-
     # TODO check if this is necessary
     input_image.data.clamp_(0, 1)
 
@@ -88,13 +89,14 @@ def analyze_static_style_transfer(style_path, content_path, steps=220, dir="", o
     # input_image = content_image.clone()
 
     # or start from random image
-    input_image = torch.randn(content_image.data.size(), device=constants.DEVICE)
+    input_image = torch.randn(
+        content_image.data.size(), device=constants.DEVICE)
 
     if optimizer == torch.optim.SGD:
-        optimizer = optimizer([input_image.requires_grad_()], lr=0.01, momentum=0.9)
+        optimizer = optimizer(
+            [input_image.requires_grad_()], lr=0.01, momentum=0.9)
     else:
         optimizer = optimizer([input_image.requires_grad_()])
-
 
     ###
     starting_time = datetime.datetime.now()
@@ -149,7 +151,7 @@ def analyze_static_style_transfer(style_path, content_path, steps=220, dir="", o
         ########
         best_loss = min(metric_losses)
         # print(best_loss)
-        
+
         with open(dpath + "results.txt", "a") as ff:
             ff.write(
                 f"{step},{(datetime.datetime.now() - starting_time).total_seconds()},{best_loss}\n")
@@ -167,25 +169,28 @@ def analyze_static_style_transfer(style_path, content_path, steps=220, dir="", o
 @click.argument('style-image')
 @click.argument('content')
 @click.option('--video', is_flag=True, help="")
-@click.option('--no-fast', is_flag=True, help="") # don't use autoencoder
+@click.option('--no-fast', is_flag=True, help="")  # don't use autoencoder
 @click.option('--start-from-random-noise', is_flag=True, help="")
-@click.option('-s', '--steps', default=300, help="") # TODO: check if this default is sensible
-@click.option('-o', '--optimizer', type=click.Choice(['Adama', 'SGD'])) # TODO: Do we want this option?
-def cli(style_image, content, video, start_from_random_noise, steps, optimizer):
+# TODO: check if this default is sensible
+@click.option('-s', '--steps', default=300, help="")
+# TODO: Do we want this option?
+@click.option('-o', '--optimizer', type=click.Choice(['Adama', 'SGD']))
+def cli(style_image, content, video, no_fast, start_from_random_noise, steps, optimizer):
     """
     Some doc
     """
+    LOGGER.info('logging some stuff')
     print(123123)
 
 
 if __name__ == "__main__":
-    cli(**{}) # suppress warning
-    import sys
-    sys.exit()
+    c_logging.setup()
+
+    cli(**{})  # suppress warning
+
     # run_static_style_transfer(1, 1, 500, "Adam")
     analyze_static_style_transfer(1, 1, 500, "LBFGS", torch.optim.LBFGS)
     analyze_static_style_transfer(1, 1, 500, "Adam", torch.optim.Adam)
     analyze_static_style_transfer(1, 1, 500, "Adadelta", torch.optim.Adadelta)
     analyze_static_style_transfer(1, 1, 500, "Adamax", torch.optim.Adamax)
     analyze_static_style_transfer(1, 1, 500, "SGD", torch.optim.SGD)
-
