@@ -165,14 +165,21 @@ def analyze_static_style_transfer(style_path, content_path, steps=220, dir="", o
 
 @click.command()
 @click.argument('style-image')
-@click.argument('content-image')
-def cli(style_image, content_image):
+@click.argument('content')
+@click.option('--video', is_flag=True, help="")
+@click.option('-s', '--steps', default=300, help="") # TODO: check if this default is sensible
+@click.option('-o', '--optimizer', type=click.Choice(['Adama', 'SGD'])) # TODO: Do we want this option?
+def cli(style_image, content, video, steps, optimizer):
+    """
+    Some doc
+    """
     print(123123)
 
 
 if __name__ == "__main__":
-    # cli(**{}) # suppress warning
-
+    cli(**{}) # suppress warning
+    import sys
+    sys.exit()
     # run_static_style_transfer(1, 1, 500, "Adam")
     analyze_static_style_transfer(1, 1, 500, "LBFGS", torch.optim.LBFGS)
     analyze_static_style_transfer(1, 1, 500, "Adam", torch.optim.Adam)
