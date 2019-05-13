@@ -167,9 +167,11 @@ def analyze_static_style_transfer(style_path, content_path, steps=220, dir="", o
 @click.argument('style-image')
 @click.argument('content')
 @click.option('--video', is_flag=True, help="")
+@click.option('--no-fast', is_flag=True, help="") # don't use autoencoder
+@click.option('--start-from-random-noise', is_flag=True, help="")
 @click.option('-s', '--steps', default=300, help="") # TODO: check if this default is sensible
 @click.option('-o', '--optimizer', type=click.Choice(['Adama', 'SGD'])) # TODO: Do we want this option?
-def cli(style_image, content, video, steps, optimizer):
+def cli(style_image, content, video, start_from_random_noise, steps, optimizer):
     """
     Some doc
     """
