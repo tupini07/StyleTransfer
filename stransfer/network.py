@@ -155,6 +155,148 @@ class StyleNetwork(nn.Sequential):
         return torch.stack([x.loss for x in self._style_loss_nodes]).sum()
 
 
+# based on the residual block implementation from:
+# https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/deep_residual_network/main.py
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels,
+                 kernel_size=3, stride=1, downsample=None,
+                 padding=1):
+        super().__init__()
+
+        self.conv1 = nn.Conv2d(in_channels=in_channels,
+                               out_channels=out_channels,
+                               kernel_size=kernel_size,
+                               stride=stride,
+                               padding=padding,
+                               bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(in_channels=out_channels,
+                               out_channels=out_channels,
+                               kernel_size=kernel_size,
+                               stride=stride,
+                               padding=padding,
+                               bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+        self.downsample = downsample
+
+    def forward(self, x):
+        # architecure of the rasidual block was taken from
+        # Gross and Wilber (Training and investigating residual nets)
+        # http://torch.ch/blog/2016/02/04/resnets.html
+        residual = x
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        if self.downsample:
+            residual = self.downsample(x)
+        out += residual
+        out = self.bn2(out)
+        return out
+
+
+class ScaledTanh(nn.Module):
+    def __init__(self, min_=0, max_=255):
+        super().__init__()
+        self.tanh = nn.Tanh()
+        self.min = min_
+        self.max = max_
+
+    def forward(self, x):
+        x = self.tanh(x)
+
+        x = ((x+1)/(2)) * (self.max - self.min)
+
+        return x
+
+
+class ImageTransformNet(nn.Sequential):
+    def __init__(self):
+        super().__init__(
+
+            # TODO in paper the ouptut of this should be
+            # 32x256x256, but as it currently is the output is
+            # 32x250x250
+            nn.Conv2d(in_channels=3,
+                      out_channels=32,
+                      kernel_size=9,
+                      stride=1,
+                      padding=4),
+            nn.BatchNorm2d(num_features=32),
+            nn.ReLU(),
+
+            nn.Conv2d(in_channels=32,
+                      out_channels=64,
+                      kernel_size=3,
+                      stride=2,
+                      padding=1),
+            nn.BatchNorm2d(num_features=64),
+            nn.ReLU(),
+
+            nn.Conv2d(in_channels=64,
+                      out_channels=128,
+                      kernel_size=3,
+                      stride=2,
+                      padding=1),
+            nn.BatchNorm2d(num_features=128),
+            nn.ReLU(),
+
+            ResidualBlock(in_channels=128,
+                          out_channels=128,
+                          kernel_size=3),
+
+            ResidualBlock(in_channels=128,
+                          out_channels=128,
+                          kernel_size=3),
+
+            ResidualBlock(in_channels=128,
+                          out_channels=128,
+                          kernel_size=3),
+
+            ResidualBlock(in_channels=128,
+                          out_channels=128,
+                          kernel_size=3),
+
+            ResidualBlock(in_channels=128,
+                          out_channels=128,
+                          kernel_size=3),
+
+            nn.ConvTranspose2d(in_channels=128,
+                               out_channels=64,
+                               kernel_size=3,
+                               stride=2,
+                               padding=1),
+            nn.BatchNorm2d(num_features=64),
+            nn.ReLU(),
+
+
+            nn.ConvTranspose2d(in_channels=64,
+                               out_channels=32,
+                               kernel_size=3,
+                               stride=2,
+                               padding=0),
+            nn.BatchNorm2d(num_features=32),
+            nn.ReLU(),
+
+            nn.ReplicationPad2d((1, 0, 1, 0)),
+
+            # TODO currently a bit hackish since we use
+            # padding to have correct shape. Check if this is needed
+            nn.Conv2d(in_channels=32,
+                      out_channels=3,
+                      kernel_size=9,
+                      stride=1,
+                      padding=4),
+
+            # TODO check if batch norm is needed
+            # for the last layer
+            nn.BatchNorm2d(num_features=3),
+            ScaledTanh(min_=0, max_=255)
+        )
+
+
 def get_content_optimizer(input_img):
     # we want to apply the gradient to the content image, so we
     # need to mark it as such
