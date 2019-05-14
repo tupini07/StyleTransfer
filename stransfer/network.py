@@ -280,7 +280,7 @@ class ImageTransformNet(nn.Sequential):
             nn.BatchNorm2d(num_features=32),
             nn.ReLU(),
 
-            nn.ReplicationPad2d((1, 0, 1, 0)),
+            nn.ZeroPad2d((1, 0, 1, 0)),
 
             # TODO currently a bit hackish since we use
             # padding to have correct shape. Check if this is needed
