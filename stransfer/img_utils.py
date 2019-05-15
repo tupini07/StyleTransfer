@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 from stransfer import constants
 
 
-def image_loader(image_name):
+def image_loader(image_name) -> torch.Tensor:
     image = Image.open(image_name)
 
     min_dimension = min(transforms.ToTensor()(image).shape[1:])
