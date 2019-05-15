@@ -22,11 +22,14 @@ def download_coco_images():
 
 
 class CocoDataset(Dataset):
-    def __init__(self):
+    def __init__(self, image_limit=None):
         # ensure that we have cocoimages
         download_coco_images()
 
         self.images = os.listdir(IMAGE_FOLDER_PATH)
+
+        if image_limit:
+            self.images = self.images[:image_limit]
 
     def __len__(self):
         return len(self.images)
@@ -37,8 +40,8 @@ class CocoDataset(Dataset):
         return img_utils.image_loader(img_path)
 
 
-def get_coco_loader():
-    dataset = CocoDataset()
+def get_coco_loader(image_limit=None) -> torch.Tensor:
+    dataset = CocoDataset(image_limit)
 
     c_loader = DataLoader(
         dataset,

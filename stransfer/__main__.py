@@ -27,7 +27,6 @@ def run_static_style_transfer(style_path, content_path, steps=220, dir=""):
 
 def run_fast_style_transfer(style_path, content_path, steps=220, dir=""):
 
-    # TODO remove these 2
     content_path = "data/dancing.jpg"
     style_path = "data/picasso.jpg"
 
@@ -36,7 +35,7 @@ def run_fast_style_transfer(style_path, content_path, steps=220, dir=""):
 
     fast_net = network.ImageTransformNet(style_image)
 
-    return fast_net.train(content_images)
+    return fast_net.train()
 
 
 def analyze_static_style_transfer(style_path, content_path, steps=220, dir="", optimizer=torch.optim.LBFGS):

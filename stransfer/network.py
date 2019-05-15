@@ -2,18 +2,20 @@ import copy
 import logging
 from collections import OrderedDict
 
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import PIL
-
 import torch.optim as optim
-from tqdm import tqdm
 import torchvision
+from tqdm import tqdm
 
-from stransfer import constants, img_utils, c_logging
+from stransfer import c_logging, constants, img_utils, dataset
+from tensorboardX import SummaryWriter
 
 LOGGER = c_logging.get_logger()
+TB_WRITER = SummaryWriter()
+
 
 _VGG = torchvision.models.vgg19(pretrained=True)
 _VGG = (_VGG
@@ -33,6 +35,7 @@ class StyleLoss(nn.Module):
 
     def gram_matrix(self, input):
         # TODO: check that gram matrix implementation is actually correct
+        # when batch size > 1 the sizes are different to the ones of the target
 
         # The size would be [batch_size, depth, height, width]
         bs, depth, height, width = input.size()
@@ -442,7 +445,7 @@ class ImageTransformNet(nn.Sequential):
 
         return optimizer(params)
 
-    def train(self, content_images):
+    def train(self):
         # TODO: parametrize
         epochs = 10
         steps = 300
@@ -453,32 +456,40 @@ class ImageTransformNet(nn.Sequential):
                                     torch.rand([1, 3, 256, 256]))
 
         optimizer = self.get_optimizer()
-        for epoch in range(200):
+        for epoch in range(epochs):
 
             LOGGER.info('Starting epoch %d', epoch)
+            for batch in dataset.get_coco_loader(image_limit=16):
 
-            for image in content_images:
-                assert isinstance(
-                    image, torch.Tensor), 'Images need to be already loaded'
+                for image in batch:
+                    image = (image.squeeze()  # remove label dimension
+                             .unsqueeze(0))  # add placeholder batch dimension
 
-                for step in tqdm(range(steps)):
+                    assert isinstance(
+                        image, torch.Tensor), 'Images need to be already loaded'
 
-                    LOGGER.info('Training, epoch %d, step %d', epoch, step)
-                    
-                    tansformed_image = self(image) # transfor the image
-                    loss_network(tansformed_image) # evaluate how good the transformation is
+                    for step in tqdm(range(steps)):
 
-                    # Get losses
-                    style_loss = loss_network.get_total_current_style_loss()
-                    content_loss = loss_network.get_total_current_content_loss()
+                        LOGGER.info('Training, epoch %d, step %d', epoch, step)
 
-                    style_loss *= style_weight
-                    content_loss *= content_weight
+                        tansformed_image = self(image)  # transfor the image
+                        # evaluate how good the transformation is
+                        loss_network(tansformed_image)
 
-                    total_loss = style_loss + content_loss
+                        # Get losses
+                        style_loss = loss_network.get_total_current_style_loss()
+                        content_loss = loss_network.get_total_current_content_loss()
 
-                    # run the gradient update
-                    total_loss.backward()
-                    optimizer.step()
+                        style_loss *= style_weight
+                        content_loss *= content_weight
 
-                    LOGGER.info('Loss: %s', total_loss)
+                        total_loss = style_loss + content_loss
+
+                        # run the gradient update
+                        total_loss.backward()
+                        optimizer.step()
+
+                        LOGGER.info('Loss: %s', total_loss)
+
+    def evaluate(self, image):
+        raise NotImplementedError()
