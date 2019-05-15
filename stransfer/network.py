@@ -1,13 +1,19 @@
 import copy
+import logging
 from collections import OrderedDict
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import PIL
+
 import torch.optim as optim
+from tqdm import tqdm
 import torchvision
 
-from stransfer import constants
+from stransfer import constants, img_utils
+
+LOGGER = logging.getLogger(__name__)
 
 _VGG = torchvision.models.vgg19(pretrained=True)
 _VGG = (_VGG
@@ -20,19 +26,15 @@ _VGG = (_VGG
 
 
 class StyleLoss(nn.Module):
-    def __init__(self, target_feature):
+    def __init__(self, target):
         super().__init__()
 
-        # TODO Check that detach is actually necesary here
-        # Here the target is the conv layer which we're taking as reference
-        # as the style source
-        self.target = self.gram_matrix(target_feature).detach()
+        self.set_target(target)
 
     def gram_matrix(self, input):
         # TODO: check that gram matrix implementation is actually correct
 
         # The size would be [batch_size, depth, height, width]
-        # in our style transfer application `bs` should always be 1
         bs, depth, height, width = input.size()
 
         features = input.view(bs * depth, height * width)
@@ -48,6 +50,12 @@ class StyleLoss(nn.Module):
         self.loss = F.mse_loss(G, self.target)
         return input
 
+    def set_target(self, target):
+        # TODO Check that detach is actually necesary here
+        # Here the target is the conv layer which we're taking as reference
+        # as the style source
+        self.target = self.gram_matrix(target).detach()
+
 
 class ContentLoss(nn.Module):
     def __init__(self, target,):
@@ -55,13 +63,16 @@ class ContentLoss(nn.Module):
 
         # Here the target is the conv layer which we're taking as reference
         # as the content source
-        self.target = target.detach()
+        self.set_target(target)
 
     def forward(self, input):
         # Content loss is just the per pixel distance between an input and
         # the target
         self.loss = F.mse_loss(input, self.target)
         return input
+
+    def set_target(self, target):
+        self.target = target.detach()
 
 
 class Normalization(nn.Module):
@@ -70,18 +81,21 @@ class Normalization(nn.Module):
         # .view the mean and std to make them [C x 1 x 1] so that they can
         # directly work with image Tensor of shape [B x C x H x W].
         # B is batch size. C is number of channels. H is height and W is width.
-        self.mean = torch.tensor(
-            mean).view(-1, 1, 1).type(torch.FloatTensor).to(constants.DEVICE)
-        self.std = torch.tensor(
-            std).view(-1, 1, 1).type(torch.FloatTensor).to(constants.DEVICE)
+        self.mean = (torch.tensor(mean)
+                     .view(-1, 1, 1)
+                     .type(torch.FloatTensor)
+                     .to(constants.DEVICE))
+        self.std = (torch.tensor(std)
+                    .view(-1, 1, 1)
+                    .type(torch.FloatTensor)
+                    .to(constants.DEVICE))
 
     def forward(self, img):
         # normalize img
         return (img - self.mean) / self.std
 
 
-class StyleNetwork(nn.Sequential):
-
+class StyleNetwork(nn.Module):
     content_layers = [  # from where image content will be taken
         #  'Conv2d_1',
         #  'Conv2d_2',
@@ -98,19 +112,25 @@ class StyleNetwork(nn.Sequential):
         'Conv2d_5',
     ]
 
-    def __init__(self, style_image, content_image, *args):
-        super().__init__(*args)
+    def __init__(self, style_image, content_image=torch.zeros([1, 3, 256, 256])):
+        super().__init__()
 
-        self._content_loss_nodes = []
-        self._style_loss_nodes = []
+        self.content_losses = []
+        self.style_losses = []
 
         vgg = copy.deepcopy(_VGG)
 
-        self.add_module('normalization', Normalization(
-            # normalize image using ImageNet mean and std
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225]).to(constants.DEVICE))
+        self.net_pieces = [
+            nn.Sequential(
+                Normalization(
+                    # normalize image using ImageNet mean and std
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225]).to(constants.DEVICE)
+            )
+        ]
 
+        loss_added = False
+        current_piece = 0
         i = 0
         for layer in vgg:
             if isinstance(layer, nn.Conv2d):
@@ -121,22 +141,42 @@ class StyleNetwork(nn.Sequential):
 
             # one of {'Conv2d', 'MaxPool2d', 'ReLU'}
             layer_name = type(layer).__name__ + f"_{i}"
-            self.add_module(layer_name, layer)
+            self.net_pieces[current_piece].add_module(layer_name, layer)
 
             if layer_name in self.content_layers:
-                # TODO: try not detaching
-                # we detach since we don't want to calculate gradients based on this
-                layer_output = self(content_image).detach()
+                layer_output = self.run_through_pieces(content_image)
                 content_loss = ContentLoss(layer_output)
-                self.add_module(f"{layer_name}_content_loss", content_loss)
-                self._content_loss_nodes.append(content_loss)
+                self.content_losses.append([content_loss, current_piece])
+                loss_added = True
 
             if layer_name in self.style_layers:
-                # TODO: try not detaching
-                layer_output = self(style_image).detach()
+                layer_output = self.run_through_pieces(style_image)
                 style_loss = StyleLoss(layer_output)
-                self.add_module(f"{layer_name}_style_loss", style_loss)
-                self._style_loss_nodes.append(style_loss)
+                self.style_losses.append([style_loss, current_piece])
+                loss_added = True
+
+            if loss_added:
+                self.net_pieces.append(current_piece)
+                current_piece += 1
+                self.net_pieces[current_piece] = nn.Sequential()
+                loss_added = False
+
+    def run_through_pieces(self, input_g, until=-1):
+        x = input_g
+
+        # if no array of pieces is provided then we just run the input
+        # through all pieces in the network
+        if until == -1:
+            pieces = self.net_pieces
+
+        else:
+            pieces = self.net_pieces[:until + 1]
+
+        # finally run the input image through the pieces
+        for piece in pieces:
+            x = piece(x)
+
+        return x
 
     def get_total_current_content_loss(self):
         """
@@ -144,7 +184,7 @@ class StyleNetwork(nn.Sequential):
         *content* nodes
         """
 
-        return torch.stack([x.loss for x in self._content_loss_nodes]).sum()
+        return torch.stack([x[0].loss for x in self.content_losses]).sum()
 
     def get_total_current_style_loss(self):
         """
@@ -152,7 +192,102 @@ class StyleNetwork(nn.Sequential):
         *style* nodes
         """
 
-        return torch.stack([x.loss for x in self._style_loss_nodes]).sum()
+        return torch.stack([x[0].loss for x in self.style_losses]).sum()
+
+    def forward(self, input_image, content_image=None, style_image=None):
+
+        # first set content and style targets
+        for (loss, piece_idx) in self.content_losses:
+            if content_image is not None:
+                loss.set_target(
+                    self.run_through_pieces(content_image, piece_idx)
+                )
+
+            loss(
+                self.run_through_pieces(input_image, piece_idx)
+            )
+
+        # if we provide a style image to override the one
+        # provided in the __init__
+        for (loss, piece_idx) in self.style_losses:
+            if style_image is not None:
+                loss.set_target(
+                    self.run_through_pieces(content_image, piece_idx)
+                )
+
+            loss(
+                self.run_through_pieces(input_image, piece_idx)
+            )
+
+        # we don't need the network output, so there is no need to run
+        # the input through the whole network
+
+    def get_content_optimizer(self, input_img, optt=optim.Adam):
+        # we want to apply the gradient to the content image, so we
+        # need to mark it as such
+
+        optimizer = optt([input_img.requires_grad_()])
+
+        return optimizer
+
+    def train(self, style_image, content_image, steps=220):
+        """
+        To train on only one content and style images
+        """
+
+        assert isinstance(
+            style_image, torch.Tensor), 'Images need to be already loaded'
+        assert isinstance(
+            content_image, torch.Tensor), 'Images need to be already loaded'
+
+        # TODO move to parameters
+        style_weight = 1000000
+        content_weight = 1
+
+        # clamp content image before creating network
+        content_image.data.clamp_(0, 1)
+
+        # start from content image
+        input_image = content_image.clone()
+
+        # start from content image
+        input_image = content_image.clone()
+
+        # or start from random image
+        # input_image = torch.randn(content_image.data.size(), device=constants.DEVICE)
+
+        optimizer = self.get_content_optimizer(input_image)
+
+        for step in tqdm(range(steps)):
+
+            def closure():
+                # clamp content image in place each step
+                input_image.data.clamp_(0, 1)
+
+                optimizer.zero_grad()
+
+                # pass content image through net
+                self(input_image, content_image)
+
+                # get losses
+                style_loss = self.get_total_current_style_loss()
+                content_loss = self.get_total_current_content_loss()
+
+                style_loss *= style_weight
+                content_loss *= content_weight
+
+                total_loss = style_loss + content_loss
+                total_loss.backward()
+
+                print(total_loss)
+                return total_loss
+
+            optimizer.step(closure)
+
+        # TODO check if this is necessary
+        input_image.data.clamp_(0, 1)
+
+        return input_image
 
 
 # based on the residual block implementation from:
@@ -213,7 +348,7 @@ class ScaledTanh(nn.Module):
 
 
 class ImageTransformNet(nn.Sequential):
-    def __init__(self):
+    def __init__(self, style_image):
         super().__init__(
 
             # TODO in paper the ouptut of this should be
@@ -295,6 +430,38 @@ class ImageTransformNet(nn.Sequential):
             nn.BatchNorm2d(num_features=3),
             ScaledTanh(min_=0, max_=255)
         )
+
+        # finally, set the style image which
+        # transform network represents
+        assert isinstance(
+            style_image, torch.Tensor), 'Style image need to be already loaded'
+        self.style_image = style_image
+
+    def train(self, content_images):
+        # TODO: parametrize
+        epochs = 10
+        steps = 300
+
+        loss_network = StyleNetwork(self.style_image,
+                                    torch.rand([1, 3, 256, 256]))
+
+        optimizer = self.get_optimizer()
+        for epoch in range(200):
+
+            LOGGER.info('Training')
+
+            for image in content_images:
+                assert isinstance(
+                    image, torch.Tensor), 'Images need to be already loaded'
+
+                for step in range(steps):
+
+                    tansformed_image = self(image)
+
+    def get_optimizer(self, optimizer=optim.Adam):
+        params = self.parameters()
+
+        return optimizer(params)
 
 
 def get_content_optimizer(input_img):
