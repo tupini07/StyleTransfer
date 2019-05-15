@@ -61,12 +61,15 @@ class StyleLoss(nn.Module):
 
 
 class ContentLoss(nn.Module):
-    def __init__(self, target,):
+    def __init__(self, target):
         super().__init__()
 
         # Here the target is the conv layer which we're taking as reference
         # as the content source
         self.set_target(target)
+
+    def set_target(self, target):
+        self.target = target.detach()
 
     def forward(self, input):
         # Content loss is just the per pixel distance between an input and
@@ -74,8 +77,30 @@ class ContentLoss(nn.Module):
         self.loss = F.mse_loss(input, self.target)
         return input
 
+
+class FeatureReconstructionLoss (nn.Module):
+    def __init__(self, target):
+        super().__init__()
+
+        # Here the target is the conv layer which we're taking as reference
+        # as the content source
+        self.set_target(target)
+
     def set_target(self, target):
         self.target = target.detach()
+
+    def forward(self, input):
+        # Content loss is just the per pixel distance between an input and
+        # the target
+        l2_norm = F.mse_loss(input, self.target)
+        l2_squared = l2_norm.pow(2)
+
+        # The size would be [batch_size, depth, height, width]
+        bs, depth, height, width = input.size()
+
+        self.loss = l2_squared.div(bs * depth * height * width)
+
+        return input
 
 
 class Normalization(nn.Module):
@@ -99,6 +124,7 @@ class Normalization(nn.Module):
 
 
 class StyleNetwork(nn.Module):
+    # TODO check if these layers are ok
     content_layers = [  # from where image content will be taken
         #  'Conv2d_1',
         #  'Conv2d_2',
@@ -115,11 +141,16 @@ class StyleNetwork(nn.Module):
         'Conv2d_5',
     ]
 
+    feature_loss_layers = [
+        'ReLU_4',
+    ]
+
     def __init__(self, style_image, content_image=torch.zeros([1, 3, 256, 256])):
         super().__init__()
 
         self.content_losses = []
         self.style_losses = []
+        self.feature_losses = []
 
         vgg = copy.deepcopy(_VGG)
 
@@ -158,6 +189,12 @@ class StyleNetwork(nn.Module):
                 self.style_losses.append([style_loss, current_piece])
                 loss_added = True
 
+            if layer_name in self.feature_loss_layers:
+                layer_output = self.run_through_pieces(content_image)
+                feature_loss = FeatureReconstructionLoss(layer_output)
+                self.feature_losses.append([feature_loss, current_piece])
+                loss_added = True
+
             if loss_added:
                 self.net_pieces.append(current_piece)
                 current_piece += 1
@@ -189,6 +226,14 @@ class StyleNetwork(nn.Module):
 
         return torch.stack([x[0].loss for x in self.content_losses]).sum()
 
+    def get_total_current_feature_loss(self):
+        """
+        Returns the sum of all the `loss` present in all
+        *content* nodes
+        """
+
+        return torch.stack([x[0].loss for x in self.feature_losses]).sum()
+
     def get_total_current_style_loss(self):
         """
         Returns the sum of all the `loss` present in all
@@ -199,8 +244,8 @@ class StyleNetwork(nn.Module):
 
     def forward(self, input_image, content_image=None, style_image=None):
 
-        # first set content and style targets
-        for (loss, piece_idx) in self.content_losses:
+        # first set content, feature, and style targets
+        for (loss, piece_idx) in self.content_losses + self.feature_losses:
             if content_image is not None:
                 loss.set_target(
                     self.run_through_pieces(content_image, piece_idx)
@@ -450,7 +495,7 @@ class ImageTransformNet(nn.Sequential):
         epochs = 10
         steps = 20
         style_weight = 1000000
-        content_weight = 1
+        feature_weight = 1
 
         loss_network = StyleNetwork(self.style_image,
                                     torch.rand([1, 3, 256, 256]))
@@ -481,12 +526,12 @@ class ImageTransformNet(nn.Sequential):
 
                         # Get losses
                         style_loss = loss_network.get_total_current_style_loss()
-                        content_loss = loss_network.get_total_current_content_loss()
+                        feature_loss = loss_network.get_total_current_feature_loss()
 
                         style_loss *= style_weight
-                        content_loss *= content_weight
+                        feature_loss *= feature_weight
 
-                        total_loss = style_loss + content_loss
+                        total_loss = style_loss + feature_loss
 
                         total_loss.backward()
 
@@ -494,11 +539,12 @@ class ImageTransformNet(nn.Sequential):
                         # of the image. Need to see if this is good or if we should do
                         # the optimization step once every batch and remove the loop on the
                         # steps
-                        TB_WRITER.add_scalar('data/fst_loss', total_loss, iteration)
+                        TB_WRITER.add_scalar(
+                            'data/fst_loss', total_loss, iteration)
                         TB_WRITER.add_image('data/fst_images',
                                             torch.cat([tansformed_image.squeeze(),
-                                                    image.squeeze()],
-                                                    dim=2),
+                                                       image.squeeze()],
+                                                      dim=2),
                                             iteration)
                         LOGGER.info('Loss: %s', total_loss)
                         iteration += 1
