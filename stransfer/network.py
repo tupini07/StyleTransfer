@@ -507,8 +507,7 @@ class ImageTransformNet(nn.Sequential):
 
             LOGGER.info('Starting epoch %d', epoch)
 
-            for batch in dataset.get_coco_loader(image_limit=16):
-                optimizer.zero_grad()
+            for batch in dataset.get_coco_loader():
 
                 for image in batch:
                     image = (image
@@ -519,6 +518,7 @@ class ImageTransformNet(nn.Sequential):
                         image, torch.Tensor), 'Images need to be already loaded'
 
                     for step in tqdm(range(steps)):
+                        optimizer.zero_grad()
 
                         tansformed_image = self(image)  # transfor the image
                         # evaluate how good the transformation is
