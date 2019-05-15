@@ -14,7 +14,7 @@ from stransfer import c_logging, constants, img_utils, dataset
 from tensorboardX import SummaryWriter
 
 LOGGER = c_logging.get_logger()
-TB_WRITER = SummaryWriter()
+TB_WRITER = SummaryWriter('runs/optimize-after-step_feature-style-loss')
 
 
 _VGG = torchvision.models.vgg19(pretrained=True)
@@ -492,8 +492,8 @@ class ImageTransformNet(nn.Sequential):
 
     def train(self):
         # TODO: parametrize
-        epochs = 10
-        steps = 20
+        epochs = 50
+        steps = 30
         style_weight = 1000000
         feature_weight = 1
 
@@ -541,11 +541,13 @@ class ImageTransformNet(nn.Sequential):
                         # steps
                         TB_WRITER.add_scalar(
                             'data/fst_loss', total_loss, iteration)
-                        TB_WRITER.add_image('data/fst_images',
-                                            torch.cat([tansformed_image.squeeze(),
-                                                       image.squeeze()],
-                                                      dim=2),
-                                            iteration)
+                        
+                        if iteration + 1 % 9999:
+                            TB_WRITER.add_image('data/fst_images',
+                                                torch.cat([tansformed_image.squeeze(),
+                                                        image.squeeze()],
+                                                        dim=2),
+                                                iteration)
                         LOGGER.info('Loss: %s', total_loss)
                         iteration += 1
 
