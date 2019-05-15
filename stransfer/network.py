@@ -548,7 +548,7 @@ class ImageTransformNet(nn.Sequential):
                                                         image.squeeze()],
                                                         dim=2),
                                                 iteration)
-                        LOGGER.info('Loss: %s', total_loss)
+                        LOGGER.info('Loss: %.4f', total_loss)
                         iteration += 1
 
                         # after processing the batch, run the gradient update
