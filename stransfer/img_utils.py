@@ -12,7 +12,8 @@ def image_loader(image_name):
     # TODO: if imagge is not sqare then cut in a square of size
     # equal to it's shortest dimension. Cut in the center 
 
-    load_transforms = transforms.Compose([
+    load_transforms = transforms.Compose([  
+        transforms.CenterCrop(torch.min(image.shape)) # crop imported image to be sqaured (min between height and width) 
         transforms.Resize(constants.IMSIZE),  # scale imported image
         transforms.ToTensor(),  # transform it into a torch tensor
     ])
