@@ -448,7 +448,7 @@ class ImageTransformNet(nn.Sequential):
     def train(self):
         # TODO: parametrize
         epochs = 10
-        steps = 300
+        steps = 20
         style_weight = 1000000
         content_weight = 1
 
@@ -459,18 +459,19 @@ class ImageTransformNet(nn.Sequential):
         for epoch in range(epochs):
 
             LOGGER.info('Starting epoch %d', epoch)
+
             for batch in dataset.get_coco_loader(image_limit=16):
+                optimizer.zero_grad()
 
                 for image in batch:
-                    image = (image.squeeze()  # remove label dimension
+                    image = (image
+                             .squeeze()  # remove label dimension
                              .unsqueeze(0))  # add placeholder batch dimension
 
                     assert isinstance(
                         image, torch.Tensor), 'Images need to be already loaded'
 
                     for step in tqdm(range(steps)):
-
-                        LOGGER.info('Training, epoch %d, step %d', epoch, step)
 
                         tansformed_image = self(image)  # transfor the image
                         # evaluate how good the transformation is
@@ -485,11 +486,13 @@ class ImageTransformNet(nn.Sequential):
 
                         total_loss = style_loss + content_loss
 
-                        # run the gradient update
+                        # accumulate loss
                         total_loss.backward()
-                        optimizer.step()
 
-                        LOGGER.info('Loss: %s', total_loss)
+                LOGGER.info('Loss: %s', total_loss)
+
+                # after processing the batch, run the gradient update
+                optimizer.step()
 
     def evaluate(self, image):
         raise NotImplementedError()
