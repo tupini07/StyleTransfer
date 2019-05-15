@@ -2,6 +2,8 @@ import logging
 
 import tqdm
 
+LOGGER = logging.getLogger('StyleTransfer')
+
 
 class TqdmLoggingHandler (logging.StreamHandler):
     """
@@ -27,11 +29,17 @@ class TqdmLoggingHandler (logging.StreamHandler):
             self.handleError(record)
 
 
-def setup(level=logging.DEBUG):
-    logging.basicConfig(
-        level=level,
-        format='%(asctime)s [%(levelname)s] %(module)s.%(funcName)s #%(lineno)d - %(message)s',
-        handlers=[
-            TqdmLoggingHandler()
-        ]
+def setup(level=logging.INFO):
+    LOGGER.setLevel(logging.DEBUG)
+    handler = TqdmLoggingHandler()
+    handler.setFormatter(
+        logging.Formatter(
+            '%(asctime)s [%(levelname)s] %(module)s.%(funcName)s #%(lineno)d - %(message)s')
+
     )
+    LOGGER.addHandler(handler)
+
+
+def get_logger():
+    setup()
+    return LOGGER
