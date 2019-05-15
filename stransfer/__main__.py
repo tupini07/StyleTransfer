@@ -25,6 +25,20 @@ def run_static_style_transfer(style_path, content_path, steps=220, dir=""):
     return st_net.train(style_image, content_image)
 
 
+def run_fast_style_transfer(style_path, content_path, steps=220, dir=""):
+
+    # TODO remove these 2
+    content_path = "data/dancing.jpg"
+    style_path = "data/picasso.jpg"
+
+    style_image = img_utils.image_loader(style_path)
+    content_images = [img_utils.image_loader(content_path)]
+
+    fast_net = network.ImageTransformNet(style_image)
+
+    return fast_net.train(content_images)
+
+
 def analyze_static_style_transfer(style_path, content_path, steps=220, dir="", optimizer=torch.optim.LBFGS):
 
     # TODO remove these 2
@@ -145,7 +159,6 @@ def cli(style_image, content, video, no_fast, start_from_random_noise, steps, op
 if __name__ == "__main__":
     colored_traceback.add_hook()
 
-    c_logging.setup()
 
-    run_static_style_transfer(0,0)
+    run_fast_style_transfer(0, 0)
     # cli(**{})  # suppress warning

@@ -11,9 +11,9 @@ import torch.optim as optim
 from tqdm import tqdm
 import torchvision
 
-from stransfer import constants, img_utils
+from stransfer import constants, img_utils, c_logging
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = c_logging.get_logger()
 
 _VGG = torchvision.models.vgg19(pretrained=True)
 _VGG = (_VGG
@@ -437,10 +437,17 @@ class ImageTransformNet(nn.Sequential):
             style_image, torch.Tensor), 'Style image need to be already loaded'
         self.style_image = style_image
 
+    def get_optimizer(self, optimizer=optim.Adam):
+        params = self.parameters()
+
+        return optimizer(params)
+
     def train(self, content_images):
         # TODO: parametrize
         epochs = 10
         steps = 300
+        style_weight = 1000000
+        content_weight = 1
 
         loss_network = StyleNetwork(self.style_image,
                                     torch.rand([1, 3, 256, 256]))
@@ -448,31 +455,30 @@ class ImageTransformNet(nn.Sequential):
         optimizer = self.get_optimizer()
         for epoch in range(200):
 
-            LOGGER.info('Training')
+            LOGGER.info('Starting epoch %d', epoch)
 
             for image in content_images:
                 assert isinstance(
                     image, torch.Tensor), 'Images need to be already loaded'
 
-                for step in range(steps):
+                for step in tqdm(range(steps)):
 
-                    tansformed_image = self(image)
+                    LOGGER.info('Training, epoch %d, step %d', epoch, step)
+                    
+                    tansformed_image = self(image) # transfor the image
+                    loss_network(tansformed_image) # evaluate how good the transformation is
 
-    def get_optimizer(self, optimizer=optim.Adam):
-        params = self.parameters()
+                    # Get losses
+                    style_loss = loss_network.get_total_current_style_loss()
+                    content_loss = loss_network.get_total_current_content_loss()
 
-        return optimizer(params)
+                    style_loss *= style_weight
+                    content_loss *= content_weight
 
+                    total_loss = style_loss + content_loss
 
-def get_content_optimizer(input_img):
-    # we want to apply the gradient to the content image, so we
-    # need to mark it as such
+                    # run the gradient update
+                    total_loss.backward()
+                    optimizer.step()
 
-    # TODO find out which is the best optimizer in this case
-    # optimizer = optim.LBFGS([input_img.requires_grad_()])
-    optimizer = optim.Adam([input_img.requires_grad_()])
-    # optimizer = optim.Adadelta([input_img.requires_grad_()])
-    # optimizer = optim.Adamax([input_img.requires_grad_()])
-    # optimizer = optim.SGD([input_img.requires_grad_()])
-
-    return optimizer
+                    LOGGER.info('Loss: %s', total_loss)
