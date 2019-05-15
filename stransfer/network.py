@@ -456,6 +456,8 @@ class ImageTransformNet(nn.Sequential):
                                     torch.rand([1, 3, 256, 256]))
 
         optimizer = self.get_optimizer()
+        iteration = 0
+
         for epoch in range(epochs):
 
             LOGGER.info('Starting epoch %d', epoch)
@@ -471,25 +473,33 @@ class ImageTransformNet(nn.Sequential):
                     assert isinstance(
                         image, torch.Tensor), 'Images need to be already loaded'
 
-                    for step in tqdm(range(steps)):
+                    # TODO is 'steps' really needed if we do a batch update
+                    # for step in tqdm(range(steps)):
 
-                        tansformed_image = self(image)  # transfor the image
-                        # evaluate how good the transformation is
-                        loss_network(tansformed_image)
+                    tansformed_image = self(image)  # transfor the image
+                    # evaluate how good the transformation is
+                    loss_network(tansformed_image)
 
-                        # Get losses
-                        style_loss = loss_network.get_total_current_style_loss()
-                        content_loss = loss_network.get_total_current_content_loss()
+                    # Get losses
+                    style_loss = loss_network.get_total_current_style_loss()
+                    content_loss = loss_network.get_total_current_content_loss()
 
-                        style_loss *= style_weight
-                        content_loss *= content_weight
+                    style_loss *= style_weight
+                    content_loss *= content_weight
 
-                        total_loss = style_loss + content_loss
+                    total_loss = style_loss + content_loss
 
-                        # accumulate loss
-                        total_loss.backward()
+                    # accumulate loss
+                    total_loss.backward()
 
+                TB_WRITER.add_scalar('data/fst_loss', total_loss, iteration)
+                TB_WRITER.add_image('data/fst_images',
+                                    torch.cat([tansformed_image.squeeze(),
+                                               image.squeeze()],
+                                              dim=2),
+                                    iteration)
                 LOGGER.info('Loss: %s', total_loss)
+                iteration += 1
 
                 # after processing the batch, run the gradient update
                 optimizer.step()

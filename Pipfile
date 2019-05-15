@@ -4,6 +4,11 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+tensorflow = "*"
+tensorboard = "*"
+pylint = "*"
+pudb = "*"
+ipython = "*"
 
 [packages]
 click = "*"
@@ -11,9 +16,6 @@ torch = "*"
 tqdm = "*"
 torchvision = "*"
 matplotlib = "*"
-pylint = "*"
-pudb = "*"
-ipython = "*"
 colored_traceback = "*"
 tensorboardX = "*"
 cython = "*"
