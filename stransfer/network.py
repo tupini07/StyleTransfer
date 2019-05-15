@@ -473,36 +473,38 @@ class ImageTransformNet(nn.Sequential):
                     assert isinstance(
                         image, torch.Tensor), 'Images need to be already loaded'
 
-                    # TODO is 'steps' really needed if we do a batch update
-                    # for step in tqdm(range(steps)):
+                    for step in tqdm(range(steps)):
 
-                    tansformed_image = self(image)  # transfor the image
-                    # evaluate how good the transformation is
-                    loss_network(tansformed_image)
+                        tansformed_image = self(image)  # transfor the image
+                        # evaluate how good the transformation is
+                        loss_network(tansformed_image)
 
-                    # Get losses
-                    style_loss = loss_network.get_total_current_style_loss()
-                    content_loss = loss_network.get_total_current_content_loss()
+                        # Get losses
+                        style_loss = loss_network.get_total_current_style_loss()
+                        content_loss = loss_network.get_total_current_content_loss()
 
-                    style_loss *= style_weight
-                    content_loss *= content_weight
+                        style_loss *= style_weight
+                        content_loss *= content_weight
 
-                    total_loss = style_loss + content_loss
+                        total_loss = style_loss + content_loss
 
-                    # accumulate loss
-                    total_loss.backward()
+                        total_loss.backward()
 
-                TB_WRITER.add_scalar('data/fst_loss', total_loss, iteration)
-                TB_WRITER.add_image('data/fst_images',
-                                    torch.cat([tansformed_image.squeeze(),
-                                               image.squeeze()],
-                                              dim=2),
-                                    iteration)
-                LOGGER.info('Loss: %s', total_loss)
-                iteration += 1
+                        # TODO currently the optimization step is done once for each step
+                        # of the image. Need to see if this is good or if we should do
+                        # the optimization step once every batch and remove the loop on the
+                        # steps
+                        TB_WRITER.add_scalar('data/fst_loss', total_loss, iteration)
+                        TB_WRITER.add_image('data/fst_images',
+                                            torch.cat([tansformed_image.squeeze(),
+                                                    image.squeeze()],
+                                                    dim=2),
+                                            iteration)
+                        LOGGER.info('Loss: %s', total_loss)
+                        iteration += 1
 
-                # after processing the batch, run the gradient update
-                optimizer.step()
+                        # after processing the batch, run the gradient update
+                        optimizer.step()
 
     def evaluate(self, image):
         raise NotImplementedError()
