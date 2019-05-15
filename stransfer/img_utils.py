@@ -9,11 +9,10 @@ from stransfer import constants
 def image_loader(image_name):
     image = Image.open(image_name)
 
-    # TODO: if imagge is not sqare then cut in a square of size
-    # equal to it's shortest dimension. Cut in the center 
-
+    min_dimension = min(transforms.ToTensor()(image).shape[1:])
+    
     load_transforms = transforms.Compose([  
-        transforms.CenterCrop(torch.min(image.shape)) # crop imported image to be sqaured (min between height and width) 
+        transforms.CenterCrop(min_dimension), # crop imported image to be sqaured (min between height and width) 
         transforms.Resize(constants.IMSIZE),  # scale imported image
         transforms.ToTensor(),  # transform it into a torch tensor
     ])
