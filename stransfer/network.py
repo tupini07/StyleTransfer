@@ -510,10 +510,7 @@ class ImageTransformNet(nn.Sequential):
             for batch in dataset.get_coco_loader():
 
                 for image in batch:
-                    image = (image
-                             .squeeze()  # remove label dimension
-                             .unsqueeze(0))  # add placeholder batch dimension
-
+                    
                     assert isinstance(
                         image, torch.Tensor), 'Images need to be already loaded'
 

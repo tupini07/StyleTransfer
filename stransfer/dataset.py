@@ -35,17 +35,17 @@ class CocoDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        
+
         img_path = os.path.join(IMAGE_FOLDER_PATH, self.images[idx])
         image = img_utils.image_loader(img_path)
 
         # if the image with the specified index doesn't have 3 channels
         # then we discard it
-        if image.shape[0] != 3:
+        if image.shape[1] != 3:
             self.images.pop(idx)
             return self.__getitem__(idx)
 
-        return img_utils.image_loader(img_path)
+        return image
 
 
 def get_coco_loader(image_limit=None) -> torch.Tensor:
