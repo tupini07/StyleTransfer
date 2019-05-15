@@ -33,7 +33,7 @@ def run_fast_style_transfer(style_path, content_path, steps=220, dir=""):
     style_image = img_utils.image_loader(style_path)
     content_images = [img_utils.image_loader(content_path)]
 
-    fast_net = network.ImageTransformNet(style_image)
+    fast_net = network.ImageTransformNet(style_image).to(constants.DEVICE)
 
     return fast_net.train()
 
