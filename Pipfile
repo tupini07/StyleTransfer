@@ -15,6 +15,9 @@ pylint = "*"
 pudb = "*"
 ipython = "*"
 colored_traceback = "*"
+tensorboardX = "*"
+cython = "*"
+pycocotools = "*"
 
 [requires]
 python_version = "3.7"
