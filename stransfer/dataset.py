@@ -11,9 +11,17 @@ IMAGE_FOLDER_PATH = BASE_COCO_PATH + 'images'
 
 
 def download_coco_images():
-    coco_dataset = torchvision.datasets.coco.CocoCaptions(
-        BASE_COCO_PATH,
-        BASE_COCO_PATH + 'image_info_test2017.json')
+    json_file_path = os.path.join(BASE_COCO_PATH,
+                                  BASE_COCO_PATH,
+                                  'image_info_test2017.json')
+
+    coco_dataset = torchvision.datasets.coco.CocoCaptions(json_file_path)
+
+    # TODO: maybe let it continue download if not all images are present in 
+    # imagefolder
+    # n_images = len(json.load(json_file_path))
+    # if n_images != os.listdir(IMAGE_FOLDER_PATH): 
+    #   continue download
 
     # image folder path does not exist or if it is empty then we doenload the data
     if not os.path.exists(IMAGE_FOLDER_PATH) or not os.listdir(IMAGE_FOLDER_PATH):
