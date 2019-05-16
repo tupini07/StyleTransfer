@@ -15,6 +15,7 @@ def download_coco_images():
                                   'image_info_test2017.json')
 
     coco_dataset = torchvision.datasets.coco.CocoCaptions(
+        root=BASE_COCO_PATH,
         annFile=json_file_path)
 
     # if we haven't downloaded all images then just continue downloading
