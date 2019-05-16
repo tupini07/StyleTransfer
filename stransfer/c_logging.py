@@ -40,6 +40,6 @@ def setup(level=logging.INFO):
     LOGGER.addHandler(handler)
 
 
-def get_logger():
+def get_logger() -> logging.Logger:
     setup()
     return LOGGER

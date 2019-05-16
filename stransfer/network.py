@@ -503,14 +503,15 @@ class ImageTransformNet(nn.Sequential):
         optimizer = self.get_optimizer()
         iteration = 0
 
+        test_loader, train_loader = dataset.get_coco_loader()
         for epoch in range(epochs):
 
             LOGGER.info('Starting epoch %d', epoch)
 
-            for batch in dataset.get_coco_loader():
+            for batch in train_loader:
 
                 for image in batch:
-                    
+
                     assert isinstance(
                         image, torch.Tensor), 'Images need to be already loaded'
 
@@ -537,19 +538,44 @@ class ImageTransformNet(nn.Sequential):
                         # the optimization step once every batch and remove the loop on the
                         # steps
                         TB_WRITER.add_scalar(
-                            'data/fst_loss', total_loss, iteration)
-                        
+                            'data/fst_train_loss', total_loss, iteration)
+
                         if iteration + 1 % 9999:
+                            average_test_loss = self.test(test_loader)
+                            TB_WRITER.add_scalar(
+                                'data/fst_test_loss', average_test_loss, iteration)
                             TB_WRITER.add_image('data/fst_images',
                                                 torch.cat([tansformed_image.squeeze(),
-                                                        image.squeeze()],
-                                                        dim=2),
+                                                           image.squeeze()],
+                                                          dim=2),
                                                 iteration)
                         LOGGER.info('Loss: %.8f', total_loss)
                         iteration += 1
 
                         # after processing the batch, run the gradient update
                         optimizer.step()
+
+    def test(self, test_loader):
+        # TODO: parametrize
+        epochs = 50
+        steps = 30
+        style_weight = 1000000
+        feature_weight = 1
+
+        loss_network = StyleNetwork(self.style_image,
+                                    torch.rand([1, 3, 256, 256]).to(constants.DEVICE))
+
+        total_test_loss = []
+        for test_img in test_loader:
+            tansformed_image = self(image)
+            loss_network(tansformed_image)
+
+            style_loss = style_weight * loss_network.get_total_current_style_loss()
+            feature_loss = feature_weight * loss_network.get_total_current_feature_loss()
+
+            total_test_loss.append(style_loss + feature_loss)
+
+        return torch.mean(torch.stack(total_test_loss))
 
     def evaluate(self, image):
         raise NotImplementedError()

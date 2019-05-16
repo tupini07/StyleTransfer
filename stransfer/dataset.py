@@ -1,10 +1,14 @@
-import os
 import json
+import os
+from typing import Tuple
+
 import torch
 import torchvision
 from torch.utils.data import DataLoader, Dataset
 
-from stransfer import img_utils
+from stransfer import c_logging, img_utils
+
+LOGGER = c_logging.get_logger()
 
 BASE_COCO_PATH = 'data/coco_dataset/'
 IMAGE_FOLDER_PATH = BASE_COCO_PATH + 'images'
@@ -27,11 +31,14 @@ def download_coco_images():
 
 
 class CocoDataset(Dataset):
-    def __init__(self, image_limit=None):
+    def __init__(self, images, image_limit=None):
         # ensure that we have cocoimages
         download_coco_images()
 
-        self.images = os.listdir(IMAGE_FOLDER_PATH)
+        if images is None:
+            self.images = os.listdir(IMAGE_FOLDER_PATH)
+        else:
+            self.images = images
 
         if image_limit:
             self.images = self.images[:image_limit]
@@ -47,20 +54,42 @@ class CocoDataset(Dataset):
         # if the image with the specified index doesn't have 3 channels
         # then we discard it
         if image.shape[1] != 3:
+            LOGGER.warn('Discarding image with %d color channels', image.shape[1])
             self.images.pop(idx)
             return self.__getitem__(idx)
 
         return image
 
 
-def get_coco_loader(image_limit=None) -> torch.Tensor:
-    dataset = CocoDataset(image_limit)
+def get_coco_loader(batch_size=4, test_split=0.10, image_limit=None) -> Tuple[DataLoader, DataLoader]:
 
-    c_loader = DataLoader(
-        dataset,
-        batch_size=4,
+    all_images = os.listdir(IMAGE_FOLDER_PATH)
+    split_idx = int(len(all_images) * test_split)
+
+    test_images = all_images[:split_idx]
+    train_images = all_images[split_idx:]
+
+    LOGGER.info('Loading train and test set')
+    LOGGER.info('Train set has %d entries', len(train_images))
+    LOGGER.info('Test set has %d entries', len(test_images))
+
+    test_dataset = CocoDataset(images=test_images,
+                               image_limit=image_limit)
+    train_dataset = CocoDataset(images=train_images,
+                                image_limit=image_limit)
+
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
         num_workers=0,
         shuffle=True
     )
 
-    return c_loader
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        num_workers=0,
+        shuffle=True
+    )
+
+    return test_loader, train_loader
