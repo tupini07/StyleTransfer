@@ -32,8 +32,6 @@ def download_coco_images():
 
 class CocoDataset(Dataset):
     def __init__(self, images, image_limit=None):
-        # ensure that we have cocoimages
-        download_coco_images()
 
         if images is None:
             self.images = os.listdir(IMAGE_FOLDER_PATH)
@@ -62,6 +60,8 @@ class CocoDataset(Dataset):
 
 
 def get_coco_loader(batch_size=4, test_split=0.10, image_limit=None) -> Tuple[DataLoader, DataLoader]:
+    # ensure that we have cocoimages
+    download_coco_images()
 
     all_images = os.listdir(IMAGE_FOLDER_PATH)
     split_idx = int(len(all_images) * test_split)
