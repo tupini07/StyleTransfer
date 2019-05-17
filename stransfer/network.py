@@ -503,7 +503,8 @@ class ImageTransformNet(nn.Sequential):
         optimizer = self.get_optimizer()
         iteration = 0
 
-        test_loader, train_loader = dataset.get_coco_loader()
+        test_loader, train_loader = dataset.get_coco_loader(test_split=0.10,
+                                                            test_limit=100)
         for epoch in range(epochs):
 
             LOGGER.info('Starting epoch %d', epoch)
@@ -540,8 +541,12 @@ class ImageTransformNet(nn.Sequential):
                         TB_WRITER.add_scalar(
                             'data/fst_train_loss', total_loss, iteration)
 
-                        if iteration + 1 % 9999 == 0:
-                            average_test_loss = self.test(test_loader, loss_network)
+                        if iteration + 1 % 99 == 0:
+                            LOGGER.info('Loss: %.8f', total_loss)
+
+                        if iteration + 1 % 999 == 0:
+                            average_test_loss = self.test(
+                                test_loader, loss_network)
                             TB_WRITER.add_scalar(
                                 'data/fst_test_loss', average_test_loss, iteration)
                             TB_WRITER.add_image('data/fst_images',
@@ -549,7 +554,6 @@ class ImageTransformNet(nn.Sequential):
                                                            image.squeeze()],
                                                           dim=2),
                                                 iteration)
-                        LOGGER.info('Loss: %.8f', total_loss)
                         iteration += 1
 
                         # after processing the batch, run the gradient update
@@ -561,12 +565,12 @@ class ImageTransformNet(nn.Sequential):
         steps = 30
         style_weight = 1000000
         feature_weight = 1
-        
+
         LOGGER.info('Get average test loss')
 
         total_test_loss = []
         for test_batch in test_loader:
-            
+
             for test_img in test_batch:
                 tansformed_image = self(test_img)
                 loss_network(tansformed_image)
@@ -575,12 +579,11 @@ class ImageTransformNet(nn.Sequential):
                 feature_loss = feature_weight * loss_network.get_total_current_feature_loss()
 
                 total_test_loss.append((style_loss + feature_loss).item())
-        
-        average_test_loss =  torch.mean(torch.Tensor(total_test_loss))
+
+        average_test_loss = torch.mean(torch.Tensor(total_test_loss))
         LOGGER.info('Average test loss: %.8f', average_test_loss)
 
         return average_test_loss
-
 
     def evaluate(self, image):
         raise NotImplementedError()
