@@ -567,8 +567,6 @@ class ImageTransformNet(nn.Sequential):
         style_weight = 1000000
         feature_weight = 1
 
-        LOGGER.info('Get average test loss')
-
         total_test_loss = []
         for test_batch in test_loader:
 
