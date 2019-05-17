@@ -516,7 +516,8 @@ class ImageTransformNet(nn.Sequential):
                     assert isinstance(
                         image, torch.Tensor), 'Images need to be already loaded'
 
-                    for step in tqdm(range(steps)):
+                    # for step in tqdm(range(steps)):
+                    for step in range(steps):
                         optimizer.zero_grad()
 
                         tansformed_image = self(image)  # transfor the image
