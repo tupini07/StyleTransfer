@@ -24,9 +24,11 @@ def download_coco_images():
 
     # if we haven't downloaded all images then just continue downloading
     n_images = len(json.load(open(json_file_path, 'r'))['images'])
-
+    
+    # try to create images path
+    os.makedirs(IMAGE_FOLDER_PATH, exist_ok=True)
+    
     if n_images > len(os.listdir(IMAGE_FOLDER_PATH)):
-        os.makedirs(IMAGE_FOLDER_PATH, exist_ok=True)
         coco_dataset.coco.download(tarDir=IMAGE_FOLDER_PATH)
 
 
