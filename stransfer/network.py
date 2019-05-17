@@ -567,7 +567,7 @@ class ImageTransformNet(nn.Sequential):
 
         total_test_loss = []
         for test_img in test_loader:
-            tansformed_image = self(image)
+            tansformed_image = self(test_img)
             loss_network(tansformed_image)
 
             style_loss = style_weight * loss_network.get_total_current_style_loss()
