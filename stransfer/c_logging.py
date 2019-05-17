@@ -32,6 +32,8 @@ class TqdmLoggingHandler (logging.StreamHandler):
 def setup(level=logging.INFO):
     LOGGER.setLevel(logging.DEBUG)
     handler = TqdmLoggingHandler()
+    
+    LOGGER.handlers = [] 
     handler.setFormatter(
         logging.Formatter(
             '%(asctime)s [%(levelname)s] %(module)s.%(funcName)s #%(lineno)d - %(message)s')
