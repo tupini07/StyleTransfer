@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from typing import Tuple
 
 import torch
@@ -60,8 +61,19 @@ class CocoDataset(Dataset):
         if image.shape[1] != 3:
             LOGGER.warn('Discarding image with %d color channels',
                         image.shape[1])
+
             self.images.pop(idx)
-            return self.__getitem__(idx)
+            
+            try:
+                return self.__getitem__(idx)
+            except IndexError:
+                # not very pretty, but if above we're at the end of the
+                # list then idx will be out of bounds. In that case just
+                # return a random image
+                return self.__getitem__(random.randint(
+                    0,
+                    len(self.images)
+                ))
 
         return image
 
