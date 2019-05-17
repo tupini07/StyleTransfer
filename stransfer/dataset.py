@@ -24,10 +24,10 @@ def download_coco_images():
 
     # if we haven't downloaded all images then just continue downloading
     n_images = len(json.load(open(json_file_path, 'r'))['images'])
-    
+
     # try to create images path
     os.makedirs(IMAGE_FOLDER_PATH, exist_ok=True)
-    
+
     if n_images > len(os.listdir(IMAGE_FOLDER_PATH)):
         coco_dataset.coco.download(tarDir=IMAGE_FOLDER_PATH)
 
@@ -41,7 +41,11 @@ class CocoDataset(Dataset):
             self.images = images
 
         if image_limit:
-            self.images = self.images[:image_limit]
+            try:
+                self.images = self.images[:image_limit]
+            except IndexError:
+                LOGGER.warn('The provided image limit is larger than '
+                            'the actual image set. So will use the whole set')
 
     def __len__(self):
         return len(self.images)
@@ -54,14 +58,15 @@ class CocoDataset(Dataset):
         # if the image with the specified index doesn't have 3 channels
         # then we discard it
         if image.shape[1] != 3:
-            LOGGER.warn('Discarding image with %d color channels', image.shape[1])
+            LOGGER.warn('Discarding image with %d color channels',
+                        image.shape[1])
             self.images.pop(idx)
             return self.__getitem__(idx)
 
         return image
 
 
-def get_coco_loader(batch_size=4, test_split=0.10, image_limit=None) -> Tuple[DataLoader, DataLoader]:
+def get_coco_loader(batch_size=4, test_split=0.10, test_limit=None, train_limit=None) -> Tuple[DataLoader, DataLoader]:
     # ensure that we have cocoimages
     download_coco_images()
 
@@ -76,9 +81,9 @@ def get_coco_loader(batch_size=4, test_split=0.10, image_limit=None) -> Tuple[Da
     LOGGER.info('Test set has %d entries', len(test_images))
 
     test_dataset = CocoDataset(images=test_images,
-                               image_limit=image_limit)
+                               image_limit=test_limit)
     train_dataset = CocoDataset(images=train_images,
-                                image_limit=image_limit)
+                                image_limit=train_limit)
 
     test_loader = DataLoader(
         test_dataset,
