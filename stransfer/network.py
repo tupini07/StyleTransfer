@@ -566,14 +566,15 @@ class ImageTransformNet(nn.Sequential):
                                     torch.rand([1, 3, 256, 256]).to(constants.DEVICE))
 
         total_test_loss = []
-        for test_img in test_loader:
-            tansformed_image = self(test_img)
-            loss_network(tansformed_image)
+        for test_batch in test_loader:
+            for test_img in test_batch:
+                tansformed_image = self(test_img)
+                loss_network(tansformed_image)
 
-            style_loss = style_weight * loss_network.get_total_current_style_loss()
-            feature_loss = feature_weight * loss_network.get_total_current_feature_loss()
+                style_loss = style_weight * loss_network.get_total_current_style_loss()
+                feature_loss = feature_weight * loss_network.get_total_current_feature_loss()
 
-            total_test_loss.append(style_loss + feature_loss)
+                total_test_loss.append(style_loss + feature_loss)
 
         return torch.mean(torch.stack(total_test_loss))
 
