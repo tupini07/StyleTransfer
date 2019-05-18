@@ -53,29 +53,30 @@ class CocoDataset(Dataset):
 
     def __getitem__(self, idx):
 
-        img_path = os.path.join(IMAGE_FOLDER_PATH, self.images[idx])
-        image = img_utils.image_loader(img_path)
+        try:
+            img_path = os.path.join(IMAGE_FOLDER_PATH, self.images[idx])
+            image = img_utils.image_loader(img_path)
 
-        # if the image with the specified index doesn't have 3 channels
-        # then we discard it
-        if image.shape[1] != 3:
-            LOGGER.warn('Discarding image with %d color channels',
-                        image.shape[1])
+            # if the image with the specified index doesn't have 3 channels
+            # then we discard it
+            if image.shape[1] != 3:
+                LOGGER.warn('Discarding image with %d color channels',
+                            image.shape[1])
 
-            self.images.pop(idx)
-            
-            try:
+                self.images.pop(idx)
                 return self.__getitem__(idx)
-            except IndexError:
-                # not very pretty, but if above we're at the end of the
-                # list then idx will be out of bounds. In that case just
-                # return a random image
-                return self.__getitem__(random.randint(
-                    0,
-                    len(self.images)
-                ))
 
-        return image
+            else:
+                return image
+
+        except IndexError:
+            # not very pretty, but if above we're at the end of the
+            # list then idx will be out of bounds. In that case just
+            # return a random image from those that do exist
+            return self.__getitem__(random.randint(
+                0,
+                len(self.images)
+            ))
 
 
 def get_coco_loader(batch_size=4, test_split=0.10, test_limit=None, train_limit=None) -> Tuple[DataLoader, DataLoader]:
