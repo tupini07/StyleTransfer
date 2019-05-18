@@ -14,8 +14,12 @@ from stransfer import c_logging, constants, img_utils, dataset
 from tensorboardX import SummaryWriter
 
 LOGGER = c_logging.get_logger()
-TB_WRITER = SummaryWriter('runs/optimize-after-step_feature-style-loss')
-
+TB_WRITER = SummaryWriter('runs/optimize-after-batch_feature-style-loss')
+TB_WRITER.add_text('note', ('For this run, the loss is accumulated across '
+                            'a complete batch and then the optimization step '
+                            'is made. Images in batch are only seen once '
+                            '(only one "step" is made for each image. '
+                            'The new feature+style loss is used.'), 0)
 
 _VGG = torchvision.models.vgg19(pretrained=True)
 _VGG = (_VGG
@@ -511,54 +515,59 @@ class ImageTransformNet(nn.Sequential):
 
             for batch in train_loader:
 
+                optimizer.zero_grad()
+                average_batch_loss = []
+
                 for image in batch:
 
                     assert isinstance(
                         image, torch.Tensor), 'Images need to be already loaded'
 
-                    # for step in tqdm(range(steps)):
-                    for step in range(steps):
-                        optimizer.zero_grad()
+                    tansformed_image = self(image)  # transfor the image
+                    # evaluate how good the transformation is
+                    loss_network(tansformed_image)
 
-                        tansformed_image = self(image)  # transfor the image
-                        # evaluate how good the transformation is
-                        loss_network(tansformed_image)
+                    # Get losses
+                    style_loss = loss_network.get_total_current_style_loss()
+                    feature_loss = loss_network.get_total_current_feature_loss()
 
-                        # Get losses
-                        style_loss = loss_network.get_total_current_style_loss()
-                        feature_loss = loss_network.get_total_current_feature_loss()
+                    style_loss *= style_weight
+                    feature_loss *= feature_weight
 
-                        style_loss *= style_weight
-                        feature_loss *= feature_weight
+                    total_loss = style_loss + feature_loss
 
-                        total_loss = style_loss + feature_loss
+                    total_loss.backward()
 
-                        total_loss.backward()
+                    average_batch_loss.append(total_loss.item())
 
-                        # TODO currently the optimization step is done once for each step
-                        # of the image. Need to see if this is good or if we should do
-                        # the optimization step once every batch and remove the loop on the
-                        # steps
-                        TB_WRITER.add_scalar(
-                            'data/fst_train_loss', total_loss, iteration)
+                # do optimization step after batch
+                average_batch_loss = torch.mean(torch.Tensor(average_batch_loss))
 
-                        if iteration % 100 == 0:
-                            LOGGER.info('Loss: %.8f', total_loss)
+                TB_WRITER.add_scalar(
+                    'data/fst_train_loss',
+                    average_batch_loss,
+                    iteration)
 
-                        if iteration % 1000 == 0:
-                            average_test_loss = self.test(
-                                test_loader, loss_network)
-                            TB_WRITER.add_scalar(
-                                'data/fst_test_loss', average_test_loss, iteration)
-                            TB_WRITER.add_image('data/fst_images',
-                                                torch.cat([tansformed_image.squeeze(),
-                                                           image.squeeze()],
-                                                          dim=2),
-                                                iteration)
-                        iteration += 1
+                if iteration % 100 == 0:
+                    LOGGER.info('Average Batch Loss: %.8f', average_batch_loss)
 
-                        # after processing the batch, run the gradient update
-                        optimizer.step()
+                if iteration % 1000 == 0:
+                    average_test_loss = self.test(
+                        test_loader, loss_network)
+
+                    TB_WRITER.add_scalar(
+                        'data/fst_test_loss', average_test_loss, iteration)
+
+                    TB_WRITER.add_image('data/fst_images',
+                                        torch.cat([tansformed_image.squeeze(),
+                                                   image.squeeze()],
+                                                  dim=2),
+                                        iteration)
+
+                iteration += 1
+
+                # after processing the batch, run the gradient update
+                optimizer.step()
 
     def test(self, test_loader, loss_network):
         # TODO: parametrize
