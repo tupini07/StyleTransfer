@@ -38,7 +38,7 @@ class TqdmLoggingHandler (logging.StreamHandler):
 tqmd_handler = TqdmLoggingHandler()
 tqmd_handler.setFormatter(LOGGER_FORMATTER)
 
-file_handler = logging.FileHandler('data/runtime.log', mode='w+')
+file_handler = logging.FileHandler('runs/runtime.log', mode='w+')
 file_handler.setFormatter(LOGGER_FORMATTER)
 
 LOGGER.addHandler(tqmd_handler)
