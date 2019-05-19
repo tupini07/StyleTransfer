@@ -69,7 +69,9 @@ class CocoDataset(Dataset):
             else:
                 return image
 
-        except IndexError:
+        # catch if file is not image or if idx is out of bounds
+        # TODO: change this to proper exceptions (don't leave generic Exception)
+        except Exception:
             # not very pretty, but if above we're at the end of the
             # list then idx will be out of bounds. In that case just
             # return a random image from those that do exist

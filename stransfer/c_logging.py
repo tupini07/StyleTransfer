@@ -3,6 +3,12 @@ import logging
 import tqdm
 
 LOGGER = logging.getLogger('StyleTransfer')
+LOGGER.setLevel(logging.DEBUG)
+LOGGER.handlers = []
+
+LOGGER_FORMATTER = logging.Formatter(
+    '%(asctime)s [%(levelname)s] %(module)s.%(funcName)s #%(lineno)d - %(message)s'
+)
 
 
 class TqdmLoggingHandler (logging.StreamHandler):
@@ -29,19 +35,15 @@ class TqdmLoggingHandler (logging.StreamHandler):
             self.handleError(record)
 
 
-def setup(level=logging.INFO):
-    LOGGER.setLevel(logging.DEBUG)
-    handler = TqdmLoggingHandler()
-    
-    LOGGER.handlers = [] 
-    handler.setFormatter(
-        logging.Formatter(
-            '%(asctime)s [%(levelname)s] %(module)s.%(funcName)s #%(lineno)d - %(message)s')
+tqmd_handler = TqdmLoggingHandler()
+tqmd_handler.setFormatter(LOGGER_FORMATTER)
 
-    )
-    LOGGER.addHandler(handler)
+file_handler = logging.FileHandler('data/runtime.log', mode='w+')
+file_handler.setFormatter(LOGGER_FORMATTER)
+
+LOGGER.addHandler(tqmd_handler)
+LOGGER.addHandler(file_handler)
 
 
 def get_logger() -> logging.Logger:
-    setup()
     return LOGGER
