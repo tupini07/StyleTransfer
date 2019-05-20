@@ -49,10 +49,10 @@ class StyleLoss(nn.Module):
         # The size would be [batch_size, depth, height, width]
         bs, depth, height, width = input.size()
 
-        features = input.view(bs, depth, height * width)
+        features = input.view(bs * depth, height * width)
 
         G = torch.matmul(features,
-                         features.transpose(1, 2))  # compute the gram product
+                         features.t())  # compute the gram product
 
         # we 'normalize' the values of the gram matrix
         # by dividing by the number of element in each feature maps.
@@ -532,8 +532,9 @@ class ImageTransformNet(nn.Sequential):
 
                 tansformed_image = self(
                     batch.squeeze())  # transfor the image
+                
                 # evaluate how good the transformation is
-                loss_network(tansformed_image)
+                loss_network(tansformed_image, content_image=batch.squeeze())
 
                 # Get losses
                 style_loss = loss_network.get_total_current_style_loss()
@@ -550,8 +551,8 @@ class ImageTransformNet(nn.Sequential):
                     'data/fst_train_loss',
                     total_loss,
                     iteration)
-                    
-                if iteration % 5 == 0: 
+
+                if iteration % 5 == 0:
                     LOGGER.info('Batch Loss: %.8f', total_loss)
 
                 if iteration % 180 == 0:
@@ -583,7 +584,7 @@ class ImageTransformNet(nn.Sequential):
         for test_batch in test_loader:
 
             tansformed_image = self(test_batch.squeeze(1))
-            loss_network(tansformed_image)
+            loss_network(tansformed_image, content_image=test_batch.squeeze())
 
             style_loss = style_weight * loss_network.get_total_current_style_loss()
             feature_loss = feature_weight * loss_network.get_total_current_feature_loss()
