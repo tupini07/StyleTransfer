@@ -69,7 +69,9 @@ class CocoDataset(Dataset):
             else:
                 return image
 
-        except IndexError:
+        # catch if file is not image or if idx is out of bounds
+        # TODO: change this to proper exceptions (don't leave generic Exception)
+        except Exception:
             # not very pretty, but if above we're at the end of the
             # list then idx will be out of bounds. In that case just
             # return a random image from those that do exist
@@ -102,6 +104,7 @@ def get_coco_loader(batch_size=4, test_split=0.10, test_limit=None, train_limit=
         test_dataset,
         batch_size=batch_size,
         num_workers=0,
+        drop_last=True,
         shuffle=True
     )
 
@@ -109,6 +112,7 @@ def get_coco_loader(batch_size=4, test_split=0.10, test_limit=None, train_limit=
         train_dataset,
         batch_size=batch_size,
         num_workers=0,
+        drop_last=True,
         shuffle=True
     )
 
