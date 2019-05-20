@@ -14,9 +14,9 @@ from stransfer import c_logging, constants, img_utils, dataset
 from tensorboardX import SummaryWriter
 
 LOGGER = c_logging.get_logger()
-TB_WRITER = SummaryWriter('runs/optimize-after-batch_feature-style-loss')
-TB_WRITER.add_text('note', ('For this run, the loss is accumulated across '
-                            'a complete batch and then the optimization step '
+TB_WRITER = SummaryWriter('runs/optimize-after-real-batch_feature-style-loss')
+TB_WRITER.add_text('note', ('For this run, the loss is calculated for a real batch
+                            'and then the optimization step '
                             'is made. Images in batch are only seen once '
                             '(only one "step" is made for each image. '
                             'The new feature+style loss is used.'), 0)
@@ -44,17 +44,20 @@ class StyleLoss(nn.Module):
         # The size would be [batch_size, depth, height, width]
         bs, depth, height, width = input.size()
 
-        features = input.view(bs * depth, height * width)
+        features = input.view(bs, depth, height * width)
 
-        G = torch.mm(features, features.t())  # compute the gram product
+        G = torch.matmul(features,
+                         features.transpose(1, 2))  # compute the gram product
 
         # we 'normalize' the values of the gram matrix
         # by dividing by the number of element in each feature maps.
         return G.div(bs * depth * height * width)
 
     def forward(self, input):
+
         G = self.gram_matrix(input)
         self.loss = F.mse_loss(G, self.target)
+
         return input
 
     def set_target(self, target):
@@ -400,7 +403,7 @@ class ScaledTanh(nn.Module):
 
 
 class ImageTransformNet(nn.Sequential):
-    def __init__(self, style_image):
+    def __init__(self, style_image, batch_size=4):
         super().__init__(
 
             # TODO in paper the ouptut of this should be
@@ -487,14 +490,18 @@ class ImageTransformNet(nn.Sequential):
         # transform network represents
         assert isinstance(
             style_image, torch.Tensor), 'Style image need to be already loaded'
-        self.style_image = style_image
+
+        # we need to ensure that we have enough style images for the batch
+        # NOTE: this could also be accomplished by letting pytorch broadcast
+        self.style_image = style_image.repeat(batch_size, 1, 1, 1)
+        self.batch_size = batch_size
 
     def get_optimizer(self, optimizer=optim.Adam):
         params = self.parameters()
 
         return optimizer(params)
 
-    def train(self):
+    def train(self, batch_size=4):
         # TODO: parametrize
         epochs = 50
         steps = 30
@@ -502,13 +509,15 @@ class ImageTransformNet(nn.Sequential):
         feature_weight = 1
 
         loss_network = StyleNetwork(self.style_image,
-                                    torch.rand([1, 3, 256, 256]).to(constants.DEVICE))
+                                    torch.rand([1, 3, 256, 256]).to(
+                                        constants.DEVICE))
 
         optimizer = self.get_optimizer()
         iteration = 0
 
         test_loader, train_loader = dataset.get_coco_loader(test_split=0.10,
-                                                            test_limit=100)
+                                                            test_limit=20,
+                                                            batch_size=batch_size)
         for epoch in range(epochs):
 
             LOGGER.info('Starting epoch %d', epoch)
@@ -516,42 +525,31 @@ class ImageTransformNet(nn.Sequential):
             for batch in train_loader:
 
                 optimizer.zero_grad()
-                average_batch_loss = []
 
-                for image in batch:
+                tansformed_image = self(batch.squeeze())  # transfor the image
+                # evaluate how good the transformation is
+                loss_network(tansformed_image)
 
-                    assert isinstance(
-                        image, torch.Tensor), 'Images need to be already loaded'
+                # Get losses
+                style_loss = loss_network.get_total_current_style_loss()
+                feature_loss = loss_network.get_total_current_feature_loss()
 
-                    tansformed_image = self(image)  # transfor the image
-                    # evaluate how good the transformation is
-                    loss_network(tansformed_image)
+                style_loss *= style_weight
+                feature_loss *= feature_weight
 
-                    # Get losses
-                    style_loss = loss_network.get_total_current_style_loss()
-                    feature_loss = loss_network.get_total_current_feature_loss()
+                total_loss = style_loss + feature_loss
 
-                    style_loss *= style_weight
-                    feature_loss *= feature_weight
-
-                    total_loss = style_loss + feature_loss
-
-                    total_loss.backward()
-
-                    average_batch_loss.append(total_loss.item())
-
-                # do optimization step after batch
-                average_batch_loss = torch.mean(torch.Tensor(average_batch_loss))
+                total_loss.backward()
 
                 TB_WRITER.add_scalar(
                     'data/fst_train_loss',
-                    average_batch_loss,
+                    total_loss,
                     iteration)
 
-                if iteration % 100 == 0:
-                    LOGGER.info('Average Batch Loss: %.8f', average_batch_loss)
+                if iteration % 20 == 0:
+                    LOGGER.info('Average Batch Loss: %.8f', total_loss)
 
-                if iteration % 1000 == 0:
+                if iteration % 80 == 0:
                     average_test_loss = self.test(
                         test_loader, loss_network)
 
@@ -559,8 +557,8 @@ class ImageTransformNet(nn.Sequential):
                         'data/fst_test_loss', average_test_loss, iteration)
 
                     TB_WRITER.add_image('data/fst_images',
-                                        torch.cat([tansformed_image.squeeze(),
-                                                   image.squeeze()],
+                                        torch.cat([tansformed_image[0].squeeze(),
+                                                   batch[0].squeeze()],
                                                   dim=2),
                                         iteration)
 
@@ -579,14 +577,13 @@ class ImageTransformNet(nn.Sequential):
         total_test_loss = []
         for test_batch in test_loader:
 
-            for test_img in test_batch:
-                tansformed_image = self(test_img)
-                loss_network(tansformed_image)
+            tansformed_image = self(test_batch.squeeze(1))
+            loss_network(tansformed_image)
 
-                style_loss = style_weight * loss_network.get_total_current_style_loss()
-                feature_loss = feature_weight * loss_network.get_total_current_feature_loss()
+            style_loss = style_weight * loss_network.get_total_current_style_loss()
+            feature_loss = feature_weight * loss_network.get_total_current_feature_loss()
 
-                total_test_loss.append((style_loss + feature_loss).item())
+            total_test_loss.append((style_loss + feature_loss).item())
 
         average_test_loss = torch.mean(torch.Tensor(total_test_loss))
         LOGGER.info('Average test loss: %.8f', average_test_loss)
