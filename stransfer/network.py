@@ -1,20 +1,25 @@
 import copy
 import logging
+import shutil
 from collections import OrderedDict
-
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
+from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
-from stransfer import c_logging, constants, img_utils, dataset
-from tensorboardX import SummaryWriter
+from stransfer import c_logging, constants, dataset, img_utils
 
 LOGGER = c_logging.get_logger()
-TB_WRITER = SummaryWriter('runs/optimize-after-real-batch_feature-style-loss')
+
+TENSORBOARD_PATH = 'runs/optimize-after-real-batch_feature-style-loss'
+
+shutil.rmtree(TENSORBOARD_PATH, ignore_errors=True)
+
+TB_WRITER = SummaryWriter(TENSORBOARD_PATH)
 TB_WRITER.add_text('note', ('For this run, the loss is calculated for a real batch'
                             'and then the optimization step '
                             'is made. Images in batch are only seen once '
