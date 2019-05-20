@@ -550,8 +550,8 @@ class ImageTransformNet(nn.Sequential):
                     'data/fst_train_loss',
                     total_loss,
                     iteration)
-
-                if iteration % 5 == 0:
+                    
+                if iteration % 5 == 0: 
                     LOGGER.info('Batch Loss: %.8f', total_loss)
 
                 if iteration % 180 == 0:
@@ -563,7 +563,7 @@ class ImageTransformNet(nn.Sequential):
 
                     TB_WRITER.add_image('data/fst_images',
                                         torch.cat([
-                                            tansformed_image.squeeze(),
+                                            tansformed_image[0].squeeze(),
                                             batch[0].squeeze()],
                                             dim=2),
                                         iteration)
