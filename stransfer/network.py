@@ -526,7 +526,8 @@ class ImageTransformNet(nn.Sequential):
                 def closure():
                     optimizer.zero_grad()
 
-                    tansformed_image = self(batch.squeeze())  # transfor the image
+                    tansformed_image = self(
+                        batch.squeeze())  # transfor the image
                     # evaluate how good the transformation is
                     loss_network(tansformed_image)
 
@@ -541,30 +542,32 @@ class ImageTransformNet(nn.Sequential):
 
                     total_loss.backward()
 
-                    TB_WRITER.add_scalar(
-                        'data/fst_train_loss',
-                        total_loss,
-                        iteration)
-
-                    if iteration % 20 == 0:
-                        LOGGER.info('Batch Loss: %.8f', total_loss)
-
-                    if iteration % 180 == 0:
-                        average_test_loss = self.test(
-                            test_loader, loss_network)
-
-                        TB_WRITER.add_scalar(
-                            'data/fst_test_loss', average_test_loss, iteration)
-
-                        TB_WRITER.add_image('data/fst_images',
-                                            torch.cat([tansformed_image[0].squeeze(),
-                                                    batch[0].squeeze()],
-                                                    dim=2),
-                                            iteration)
-
-                    iteration += 1
-
                     return total_loss
+
+                total_loss = closure()
+
+                TB_WRITER.add_scalar(
+                    'data/fst_train_loss',
+                    total_loss,
+                    iteration)
+
+                if iteration % 20 == 0:
+                    LOGGER.info('Batch Loss: %.8f', total_loss)
+
+                if iteration % 180 == 0:
+                    average_test_loss = self.test(
+                        test_loader, loss_network)
+
+                    TB_WRITER.add_scalar(
+                        'data/fst_test_loss', average_test_loss, iteration)
+
+                    TB_WRITER.add_image('data/fst_images',
+                                        torch.cat([self(
+                                            batch.squeeze())[0].squeeze(),
+                                            batch[0].squeeze()],
+                                            dim=2),
+                                        iteration)
+                iteration += 1
 
                 # after processing the batch, run the gradient update
                 optimizer.step(closure)
