@@ -19,6 +19,7 @@ def download_coco_images():
     json_file_path = os.path.join(BASE_COCO_PATH,
                                   'image_info_test2017.json')
 
+    return
     coco_dataset = torchvision.datasets.coco.CocoCaptions(
         root=BASE_COCO_PATH,
         annFile=json_file_path)
