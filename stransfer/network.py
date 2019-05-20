@@ -539,6 +539,7 @@ class ImageTransformNet(nn.Sequential):
                     feature_loss *= feature_weight
 
                     total_loss = style_loss + feature_loss
+                    LOGGER.info('Batch Loss: %.8f', total_loss)
 
                     total_loss.backward()
 
