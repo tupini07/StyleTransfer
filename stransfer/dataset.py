@@ -104,6 +104,7 @@ def get_coco_loader(batch_size=4, test_split=0.10, test_limit=None, train_limit=
         test_dataset,
         batch_size=batch_size,
         num_workers=0,
+        drop_last=True,
         shuffle=True
     )
 
@@ -111,6 +112,7 @@ def get_coco_loader(batch_size=4, test_split=0.10, test_limit=None, train_limit=
         train_dataset,
         batch_size=batch_size,
         num_workers=0,
+        drop_last=True,
         shuffle=True
     )
 
