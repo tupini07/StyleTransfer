@@ -547,9 +547,9 @@ class ImageTransformNet(nn.Sequential):
                     iteration)
 
                 if iteration % 20 == 0:
-                    LOGGER.info('Average Batch Loss: %.8f', total_loss)
+                    LOGGER.info('Batch Loss: %.8f', total_loss)
 
-                if iteration % 80 == 0:
+                if iteration % 180 == 0:
                     average_test_loss = self.test(
                         test_loader, loss_network)
 
