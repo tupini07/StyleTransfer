@@ -512,7 +512,7 @@ class ImageTransformNet(nn.Sequential):
                                     torch.rand([1, 3, 256, 256]).to(
                                         constants.DEVICE))
 
-        optimizer = self.get_optimizer()
+        optimizer = self.get_optimizer(optimizer=torch.optim.LBFGS)
         iteration = 0
 
         test_loader, train_loader = dataset.get_coco_loader(test_split=0.10,
@@ -523,49 +523,51 @@ class ImageTransformNet(nn.Sequential):
             LOGGER.info('Starting epoch %d', epoch)
 
             for batch in train_loader:
+                def closure():
+                    optimizer.zero_grad()
 
-                optimizer.zero_grad()
+                    tansformed_image = self(batch.squeeze())  # transfor the image
+                    # evaluate how good the transformation is
+                    loss_network(tansformed_image)
 
-                tansformed_image = self(batch.squeeze())  # transfor the image
-                # evaluate how good the transformation is
-                loss_network(tansformed_image)
+                    # Get losses
+                    style_loss = loss_network.get_total_current_style_loss()
+                    feature_loss = loss_network.get_total_current_feature_loss()
 
-                # Get losses
-                style_loss = loss_network.get_total_current_style_loss()
-                feature_loss = loss_network.get_total_current_feature_loss()
+                    style_loss *= style_weight
+                    feature_loss *= feature_weight
 
-                style_loss *= style_weight
-                feature_loss *= feature_weight
+                    total_loss = style_loss + feature_loss
 
-                total_loss = style_loss + feature_loss
-
-                total_loss.backward()
-
-                TB_WRITER.add_scalar(
-                    'data/fst_train_loss',
-                    total_loss,
-                    iteration)
-
-                if iteration % 20 == 0:
-                    LOGGER.info('Batch Loss: %.8f', total_loss)
-
-                if iteration % 180 == 0:
-                    average_test_loss = self.test(
-                        test_loader, loss_network)
+                    total_loss.backward()
 
                     TB_WRITER.add_scalar(
-                        'data/fst_test_loss', average_test_loss, iteration)
+                        'data/fst_train_loss',
+                        total_loss,
+                        iteration)
 
-                    TB_WRITER.add_image('data/fst_images',
-                                        torch.cat([tansformed_image[0].squeeze(),
-                                                   batch[0].squeeze()],
-                                                  dim=2),
-                                        iteration)
+                    if iteration % 20 == 0:
+                        LOGGER.info('Batch Loss: %.8f', total_loss)
+
+                    if iteration % 180 == 0:
+                        average_test_loss = self.test(
+                            test_loader, loss_network)
+
+                        TB_WRITER.add_scalar(
+                            'data/fst_test_loss', average_test_loss, iteration)
+
+                        TB_WRITER.add_image('data/fst_images',
+                                            torch.cat([tansformed_image[0].squeeze(),
+                                                    batch[0].squeeze()],
+                                                    dim=2),
+                                            iteration)
+
+                    return total_loss
 
                 iteration += 1
 
                 # after processing the batch, run the gradient update
-                optimizer.step()
+                optimizer.step(closure)
 
     def test(self, test_loader, loss_network):
         # TODO: parametrize
