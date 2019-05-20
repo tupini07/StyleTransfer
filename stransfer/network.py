@@ -562,9 +562,9 @@ class ImageTransformNet(nn.Sequential):
                                                     dim=2),
                                             iteration)
 
-                    return total_loss
+                    iteration += 1
 
-                iteration += 1
+                    return total_loss
 
                 # after processing the batch, run the gradient update
                 optimizer.step(closure)
