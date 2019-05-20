@@ -539,7 +539,6 @@ class ImageTransformNet(nn.Sequential):
                     feature_loss *= feature_weight
 
                     total_loss = style_loss + feature_loss
-                    LOGGER.info('Batch Loss: %.8f', total_loss)
 
                     total_loss.backward()
 
@@ -547,12 +546,16 @@ class ImageTransformNet(nn.Sequential):
 
                 total_loss = closure()
 
+                if total_loss.item() < 500 and not isinstance(optimizer, optim.Adam):
+                    LOGGER.info('Changed optimizer to Adam')
+                    optimizer = self.get_optimizer(optimizer=optim.Adam)
+
                 TB_WRITER.add_scalar(
                     'data/fst_train_loss',
                     total_loss,
                     iteration)
 
-                if iteration % 20 == 0:
+                if iteration % 5 == 0:
                     LOGGER.info('Batch Loss: %.8f', total_loss)
 
                 if iteration % 180 == 0:
