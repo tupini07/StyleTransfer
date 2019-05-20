@@ -15,7 +15,7 @@ from tensorboardX import SummaryWriter
 
 LOGGER = c_logging.get_logger()
 TB_WRITER = SummaryWriter('runs/optimize-after-real-batch_feature-style-loss')
-TB_WRITER.add_text('note', ('For this run, the loss is calculated for a real batch
+TB_WRITER.add_text('note', ('For this run, the loss is calculated for a real batch'
                             'and then the optimization step '
                             'is made. Images in batch are only seen once '
                             '(only one "step" is made for each image. '
