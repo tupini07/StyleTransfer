@@ -514,15 +514,15 @@ class ImageTransformNet(nn.Sequential):
         # TODO: parametrize
         epochs = 50
         steps = 30
-        style_weight = 1000000
-        feature_weight = content_weight = 1
+        style_weight = 100_000
+        feature_weight = content_weight = 6_000
 
         loss_network = StyleNetwork(self.style_image,
                                     torch.rand([1, 3, 256, 256]).to(
                                         constants.DEVICE))
 
         # optimizer = self.get_optimizer(optimizer=optim.Adam)
-        optimizer = self.get_optimizer(optimizer=optim.LBFGS)
+        optimizer = [self.get_optimizer(optimizer=optim.LBFGS)]
 
         LOGGER.info('Training network with "%s" optimizer', type(optimizer))
 
@@ -540,12 +540,21 @@ class ImageTransformNet(nn.Sequential):
                 for image in batch:
 
                     def closure():
-                        optimizer.zero_grad()
+                        optimizer[0].zero_grad()
 
                         tansformed_image = torch.clamp(
                             self(image),  # transfor the image
                             min=0,
-                            max=255
+                            max=254 #? is 255 a good value for RGB?
+                                    #? in sample images, all 255 looks black
+                                    #? but it should be white?
+                        )
+
+                        img_utils.imshow(
+                            torch.cat([
+                                tansformed_image.squeeze(),
+                                image.squeeze()],
+                                dim=2)
                         )
 
                         # evaluate how good the transformation is
@@ -554,21 +563,29 @@ class ImageTransformNet(nn.Sequential):
 
                         # Get losses
                         style_loss = loss_network.get_total_current_style_loss()
-                        # feature_loss = loss_network.get_total_current_feature_loss()
+                        feature_loss = loss_network.get_total_current_feature_loss()
                         content_loss = loss_network.get_total_current_content_loss()
 
                         style_loss *= style_weight
-                        # feature_loss *= feature_weight
+                        feature_loss *= feature_weight # * feature_weight
                         content_loss *= content_weight
 
-                        # total_loss = style_loss + feature_loss
+                        # total_loss = feature_loss + style_loss
                         total_loss = style_loss + content_loss
 
                         total_loss.backward()
+                        if any(x.sum().item() >= 16711680.0 for x in tansformed_image.squeeze()):
+                            import ipdb; ipdb.set_trace()
+
+                        LOGGER.debug('Transformed sum: %s', [x.sum().item() for x in tansformed_image.squeeze()])
 
                         LOGGER.debug('Closure loss: %.8f', total_loss)
 
-                        return total_loss
+                        if total_loss.item() < 24_000 and not isinstance(optimizer[0], optim.Adam):
+                            LOGGER.info('Switching to ADAM optimizer')
+                            optimizer[0] = self.get_optimizer(optimizer=optim.Adam)
+
+                        return style_loss + content_loss
 
                     total_loss = closure()
 
@@ -576,6 +593,7 @@ class ImageTransformNet(nn.Sequential):
                         'data/fst_train_loss',
                         total_loss,
                         iteration)
+
 
                     if iteration % 10 == 0:
                         LOGGER.info('Batch Loss: %.8f', total_loss)
@@ -604,7 +622,7 @@ class ImageTransformNet(nn.Sequential):
                     iteration += 1
 
                     # after processing the batch, run the gradient update
-                    optimizer.step(closure)
+                    optimizer[0].step(closure)
 
     def test(self, test_loader, loss_network):
         # TODO: parametrize
