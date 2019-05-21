@@ -517,7 +517,7 @@ class ImageTransformNet(nn.Sequential):
                                     torch.rand([1, 3, 256, 256]).to(
                                         constants.DEVICE))
 
-        optimizer = self.get_optimizer(optimizer=torch.optim.Adam)
+        optimizer = self.get_optimizer(optimizer=optim.LBFGS)
         iteration = 0
 
         test_loader, train_loader = dataset.get_coco_loader(test_split=0.10,
@@ -528,24 +528,29 @@ class ImageTransformNet(nn.Sequential):
             LOGGER.info('Starting epoch %d', epoch)
 
             for batch in train_loader:
-                optimizer.zero_grad()
+                def closure():
+                    optimizer.zero_grad()
 
-                tansformed_image = self(
-                    batch.squeeze())  # transfor the image
-                
-                # evaluate how good the transformation is
-                loss_network(tansformed_image, content_image=batch.squeeze())
+                    tansformed_image = self(
+                        batch.squeeze())  # transfor the image
+                    # evaluate how good the transformation is
+                    loss_network(tansformed_image,
+                                 content_image=batch.squeeze())
 
-                # Get losses
-                style_loss = loss_network.get_total_current_style_loss()
-                feature_loss = loss_network.get_total_current_feature_loss()
+                    # Get losses
+                    style_loss = loss_network.get_total_current_style_loss()
+                    feature_loss = loss_network.get_total_current_feature_loss()
 
-                style_loss *= style_weight
-                feature_loss *= feature_weight
+                    style_loss *= style_weight
+                    feature_loss *= feature_weight
 
-                total_loss = style_loss + feature_loss
+                    total_loss = style_loss + feature_loss
 
-                total_loss.backward()
+                    total_loss.backward()
+
+                    return total_loss
+
+                total_loss = closure()
 
                 TB_WRITER.add_scalar(
                     'data/fst_train_loss',
@@ -564,14 +569,15 @@ class ImageTransformNet(nn.Sequential):
 
                     TB_WRITER.add_image('data/fst_images',
                                         torch.cat([
-                                            tansformed_image[0].squeeze(),
+                                            self(
+                                                batch.squeeze())[0].squeeze(),
                                             batch[0].squeeze()],
                                             dim=2),
                                         iteration)
                 iteration += 1
 
                 # after processing the batch, run the gradient update
-                optimizer.step()
+                optimizer.step(closure)
 
     def test(self, test_loader, loss_network):
         # TODO: parametrize
