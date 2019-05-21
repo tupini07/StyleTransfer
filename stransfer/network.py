@@ -531,8 +531,12 @@ class ImageTransformNet(nn.Sequential):
                 def closure():
                     optimizer.zero_grad()
 
-                    tansformed_image = self(
-                        batch.squeeze())  # transfor the image
+                    tansformed_image = torch.clamp(
+                        self(batch.squeeze()),  # transfor the image
+                        min=0,
+                        max=255
+                    )
+
                     # evaluate how good the transformation is
                     loss_network(tansformed_image,
                                  content_image=batch.squeeze())
@@ -592,7 +596,12 @@ class ImageTransformNet(nn.Sequential):
         total_test_loss = []
         for test_batch in test_loader:
 
-            tansformed_image = self(test_batch.squeeze(1))
+            tansformed_image = torch.clamp(
+                self(test_batch.squeeze(1)),  # transfor the image
+                min=0,
+                max=255
+            )
+
             loss_network(tansformed_image, content_image=test_batch.squeeze())
 
             style_loss = style_weight * loss_network.get_total_current_style_loss()
