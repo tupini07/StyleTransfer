@@ -518,6 +518,9 @@ class ImageTransformNet(nn.Sequential):
                                         constants.DEVICE))
 
         optimizer = self.get_optimizer(optimizer=optim.Adam)
+
+        LOGGER.info('Training network with "%s" optimizer', type(optimizer))
+
         iteration = 0
 
         test_loader, train_loader = dataset.get_coco_loader(test_split=0.10,
