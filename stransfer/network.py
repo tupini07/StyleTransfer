@@ -511,7 +511,7 @@ class ImageTransformNet(nn.Sequential):
         epochs = 50
         steps = 30
         style_weight = 1000000
-        feature_weight = 1
+        feature_weight = content_weight = 1
 
         loss_network = StyleNetwork(self.style_image,
                                     torch.rand([1, 3, 256, 256]).to(
@@ -539,12 +539,15 @@ class ImageTransformNet(nn.Sequential):
 
                     # Get losses
                     style_loss = loss_network.get_total_current_style_loss()
-                    feature_loss = loss_network.get_total_current_feature_loss()
+                    # feature_loss = loss_network.get_total_current_feature_loss()
+                    content_loss = loss_network.get_total_current_content_loss()
 
                     style_loss *= style_weight
-                    feature_loss *= feature_weight
+                    # feature_loss *= feature_weight
+                    content_loss *= content_weight
 
-                    total_loss = style_loss + feature_loss
+                    # total_loss = style_loss + feature_loss
+                    total_loss = style_loss + content_loss
 
                     total_loss.backward()
 
