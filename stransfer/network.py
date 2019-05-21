@@ -517,7 +517,7 @@ class ImageTransformNet(nn.Sequential):
                                     torch.rand([1, 3, 256, 256]).to(
                                         constants.DEVICE))
 
-        optimizer = self.get_optimizer(optimizer=optim.LBFGS)
+        optimizer = self.get_optimizer(optimizer=optim.Adam)
         iteration = 0
 
         test_loader, train_loader = dataset.get_coco_loader(test_split=0.10,
@@ -554,6 +554,8 @@ class ImageTransformNet(nn.Sequential):
                     total_loss = style_loss + content_loss
 
                     total_loss.backward()
+
+                    LOGGER.info('Closure loss: %d', total_loss)
 
                     return total_loss
 
