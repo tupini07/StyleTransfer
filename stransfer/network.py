@@ -521,7 +521,8 @@ class ImageTransformNet(nn.Sequential):
                                     torch.rand([1, 3, 256, 256]).to(
                                         constants.DEVICE))
 
-        optimizer = self.get_optimizer(optimizer=optim.Adam)
+        # optimizer = self.get_optimizer(optimizer=optim.Adam)
+        optimizer = self.get_optimizer(optimizer=optim.LBFGS)
 
         LOGGER.info('Training network with "%s" optimizer', type(optimizer))
 
