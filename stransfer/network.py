@@ -408,7 +408,7 @@ class ScaledTanh(nn.Module):
 
 
 class ImageTransformNet(nn.Sequential):
-    def __init__(self, style_image, batch_size=4):
+    def __init__(self, style_image, batch_size=1):
         super().__init__(
 
             # TODO in paper the ouptut of this should be
@@ -498,6 +498,10 @@ class ImageTransformNet(nn.Sequential):
 
         # we need to ensure that we have enough style images for the batch
         # NOTE: this could also be accomplished by letting pytorch broadcast
+        LOGGER.debug(
+            'Repeating style image across batch dim to match specified batch size of "%d"',
+            batch_size)
+
         self.style_image = style_image.repeat(batch_size, 1, 1, 1)
         self.batch_size = batch_size
 
@@ -506,7 +510,7 @@ class ImageTransformNet(nn.Sequential):
 
         return optimizer(params)
 
-    def train(self, batch_size=4):
+    def train(self):
         # TODO: parametrize
         epochs = 50
         steps = 30
@@ -525,71 +529,81 @@ class ImageTransformNet(nn.Sequential):
 
         test_loader, train_loader = dataset.get_coco_loader(test_split=0.10,
                                                             test_limit=20,
-                                                            batch_size=batch_size)
+                                                            batch_size=self.batch_size)
         for epoch in range(epochs):
 
             LOGGER.info('Starting epoch %d', epoch)
 
             for batch in train_loader:
-                def closure():
-                    optimizer.zero_grad()
 
-                    tansformed_image = torch.clamp(
-                        self(batch.squeeze()),  # transfor the image
-                        min=0,
-                        max=255
-                    )
+                for image in batch:
 
-                    # evaluate how good the transformation is
-                    loss_network(tansformed_image,
-                                 content_image=batch.squeeze())
+                    def closure():
+                        optimizer.zero_grad()
 
-                    # Get losses
-                    style_loss = loss_network.get_total_current_style_loss()
-                    # feature_loss = loss_network.get_total_current_feature_loss()
-                    content_loss = loss_network.get_total_current_content_loss()
+                        tansformed_image = torch.clamp(
+                            self(image),  # transfor the image
+                            min=0,
+                            max=255
+                        )
 
-                    style_loss *= style_weight
-                    # feature_loss *= feature_weight
-                    content_loss *= content_weight
+                        # evaluate how good the transformation is
+                        loss_network(tansformed_image,
+                                     content_image=image)
 
-                    # total_loss = style_loss + feature_loss
-                    total_loss = style_loss + content_loss
+                        # Get losses
+                        style_loss = loss_network.get_total_current_style_loss()
+                        # feature_loss = loss_network.get_total_current_feature_loss()
+                        content_loss = loss_network.get_total_current_content_loss()
 
-                    total_loss.backward()
+                        style_loss *= style_weight
+                        # feature_loss *= feature_weight
+                        content_loss *= content_weight
 
-                    LOGGER.info('Closure loss: %d', total_loss)
+                        # total_loss = style_loss + feature_loss
+                        total_loss = style_loss + content_loss
 
-                    return total_loss
+                        total_loss.backward()
 
-                total_loss = closure()
+                        LOGGER.debug('Closure loss: %.8f', total_loss)
 
-                TB_WRITER.add_scalar(
-                    'data/fst_train_loss',
-                    total_loss,
-                    iteration)
+                        return total_loss
 
-                if iteration % 5 == 0:
-                    LOGGER.info('Batch Loss: %.8f', total_loss)
-
-                if iteration % 180 == 0:
-                    average_test_loss = self.test(
-                        test_loader, loss_network)
+                    total_loss = closure()
 
                     TB_WRITER.add_scalar(
-                        'data/fst_test_loss', average_test_loss, iteration)
+                        'data/fst_train_loss',
+                        total_loss,
+                        iteration)
 
-                    TB_WRITER.add_image('data/fst_images',
-                                        torch.cat([
-                                            self(
-                                                batch.squeeze())[0].squeeze(),
-                                            batch[0].squeeze()],
-                                            dim=2),
-                                        iteration)
-                iteration += 1
+                    if iteration % 10 == 0:
+                        LOGGER.info('Batch Loss: %.8f', total_loss)
 
-                # after processing the batch, run the gradient update
-                optimizer.step(closure)
+                    if iteration % 150 == 0:
+                        average_test_loss = self.test(
+                            test_loader, loss_network)
+
+                        TB_WRITER.add_scalar(
+                            'data/fst_test_loss', average_test_loss, iteration)
+
+                    if iteration % 50 == 0:
+
+                        tansformed_image = torch.clamp(
+                            self(image),  # transfor the image
+                            min=0,
+                            max=255
+                        )
+
+                        TB_WRITER.add_image('data/fst_images',
+                                            torch.cat([
+                                                tansformed_image.squeeze(),
+                                                batch[0].squeeze()],
+                                                dim=2),
+                                            iteration)
+                    iteration += 1
+
+                    # after processing the batch, run the gradient update
+                    optimizer.step(closure)
 
     def test(self, test_loader, loss_network):
         # TODO: parametrize
@@ -607,7 +621,7 @@ class ImageTransformNet(nn.Sequential):
                 max=255
             )
 
-            loss_network(tansformed_image, content_image=test_batch.squeeze())
+            loss_network(tansformed_image, content_image=test_batch.squeeze(1))
 
             style_loss = style_weight * loss_network.get_total_current_style_loss()
             feature_loss = feature_weight * loss_network.get_total_current_feature_loss()
