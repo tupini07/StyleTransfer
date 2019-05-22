@@ -589,16 +589,14 @@ class ImageTransformNet(nn.Sequential):
                         total_loss = style_loss + content_loss
 
                         total_loss.backward()
-                        if any(x.sum().item() >= 16711680.0 for x in tansformed_image.squeeze()):
-                            import ipdb; ipdb.set_trace()
 
-                        LOGGER.debug('Transformed sum: %s', [x.sum().item() for x in tansformed_image.squeeze()])
-
+                        LOGGER.debug('Max of each channel: %s', [
+                                     x.max().item() for x in tansformed_image.squeeze()])
+                        LOGGER.debug('Min of each channel: %s', [
+                                     x.min().item() for x in tansformed_image.squeeze()])
+                        LOGGER.debug('Sum of each channel: %s', [
+                                     x.sum().item() for x in tansformed_image.squeeze()])
                         LOGGER.debug('Closure loss: %.8f', total_loss)
-
-                        if total_loss.item() < 24_000 and not isinstance(optimizer[0], optim.Adam):
-                            LOGGER.info('Switching to ADAM optimizer')
-                            optimizer[0] = self.get_optimizer(optimizer=optim.Adam)
 
                         return style_loss + content_loss
 
