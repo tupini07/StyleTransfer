@@ -560,12 +560,17 @@ class ImageTransformNet(nn.Sequential):
 
                     def closure():
                         optimizer.zero_grad()
-                        transformed_image = torch.clamp(
-                            self(image),  # transfor the image
-                            min=0,
-                            max=255
-                        )
+                        
+                        # Clamping seems to hurt performance. The network
+                        # starts outputting only 0 for the pixel values
+                        # transformed_image = torch.clamp(
+                        #     self(image),  # transfor the image
+                        #     min=0,
+                        #     max=255
+                        # )
 
+                        transformed_image = self(image)
+                        
                         img_utils.imshow(
                             torch.cat([
                                 transformed_image.squeeze(),
