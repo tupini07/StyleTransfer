@@ -416,7 +416,7 @@ class ImageTransformNet(nn.Sequential):
                       padding=4,
                       padding_mode='reflection'),
             nn.InstanceNorm2d(num_features=32, affine=True),
-            nn.ReLu(),
+            nn.ReLU(),
 
             # Second Conv
             nn.Conv2d(in_channels=32,
@@ -425,7 +425,7 @@ class ImageTransformNet(nn.Sequential):
                       stride=2,
                       padding=1),
             nn.InstanceNorm2d(num_features=64, affine=True),
-            nn.ReLu(),
+            nn.ReLU(),
 
             # Third Conv
             nn.Conv2d(in_channels=64,
@@ -435,7 +435,7 @@ class ImageTransformNet(nn.Sequential):
                       padding=1,
                       padding_mode='reflection'),
             nn.InstanceNorm2d(num_features=128, affine=True),
-            nn.ReLu(),
+            nn.ReLU(),
 
             # * Residual blocks
             ResidualBlock(in_channels=128,
@@ -553,22 +553,22 @@ class ImageTransformNet(nn.Sequential):
 
                     def closure():
                         optimizer.zero_grad()
-                        # tansformed_image = torch.clamp(
+                        # transformed_image = torch.clamp(
                         #     self(image),  # transfor the image
                         #     min=0,
                         #     max=255 
                         # )
 
-                        tansformed_image = self(image)
+                        transformed_image = self(image)
                         img_utils.imshow(
                             torch.cat([
-                                tansformed_image.squeeze(),
+                                transformed_image.squeeze(),
                                 image.squeeze()],
                                 dim=2)
                         )
 
                         # evaluate how good the transformation is
-                        loss_network(tansformed_image,
+                        loss_network(transformed_image,
                                      content_image=image)
 
                         # Get losses
@@ -582,7 +582,7 @@ class ImageTransformNet(nn.Sequential):
                             weight=content_weight
                         )
                         regularization_loss = self.get_total_variation_regularization_loss(
-                            tansformed_image
+                            transformed_image
                         )
 
                         # total_loss = feature_loss + style_loss
@@ -594,11 +594,11 @@ class ImageTransformNet(nn.Sequential):
                         total_loss.backward()
 
                         LOGGER.debug('Max of each channel: %s', [
-                                     x.max().item() for x in tansformed_image.squeeze()])
+                                     x.max().item() for x in transformed_image.squeeze()])
                         LOGGER.debug('Min of each channel: %s', [
-                                     x.min().item() for x in tansformed_image.squeeze()])
+                                     x.min().item() for x in transformed_image.squeeze()])
                         LOGGER.debug('Sum of each channel: %s', [
-                                     x.sum().item() for x in tansformed_image.squeeze()])
+                                     x.sum().item() for x in transformed_image.squeeze()])
                         LOGGER.debug('Closure loss: %.8f', total_loss)
 
                         return style_loss + content_loss
@@ -622,7 +622,7 @@ class ImageTransformNet(nn.Sequential):
 
                     if iteration % 50 == 0:
 
-                        tansformed_image = torch.clamp(
+                        transformed_image = torch.clamp(
                             self(image),  # transfor the image
                             min=0,
                             max=255
@@ -630,7 +630,7 @@ class ImageTransformNet(nn.Sequential):
 
                         TB_WRITER.add_image('data/fst_images',
                                             torch.cat([
-                                                tansformed_image.squeeze(),
+                                                transformed_image.squeeze(),
                                                 batch[0].squeeze()],
                                                 dim=2),
                                             iteration)
@@ -649,13 +649,13 @@ class ImageTransformNet(nn.Sequential):
         total_test_loss = []
         for test_batch in test_loader:
 
-            tansformed_image = torch.clamp(
+            transformed_image = torch.clamp(
                 self(test_batch.squeeze(1)),  # transfor the image
                 min=0,
                 max=255
             )
 
-            loss_network(tansformed_image, content_image=test_batch.squeeze(1))
+            loss_network(transformed_image, content_image=test_batch.squeeze(1))
 
             style_loss = style_weight * loss_network.get_total_current_style_loss()
             feature_loss = feature_weight * loss_network.get_total_current_feature_loss()
