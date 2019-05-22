@@ -520,7 +520,7 @@ class ImageTransformNet(nn.Sequential):
 
         loss_network = StyleNetwork(self.style_image,
                                     torch.rand([1, 3, 256, 256]).to(
-                                        constants.DEVICE))
+                                        constants.DEVICE)).eval()
 
         # optimizer = self.get_optimizer(optimizer=optim.Adam)
         optimizer = [self.get_optimizer(optimizer=optim.LBFGS)]
