@@ -601,7 +601,7 @@ class ImageTransformNet(nn.Sequential):
                                      x.sum().item() for x in transformed_image.squeeze()])
                         LOGGER.debug('Closure loss: %.8f', total_loss)
 
-                        return style_loss + content_loss
+                    return total_loss
 
                     total_loss = closure()
 
