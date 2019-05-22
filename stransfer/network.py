@@ -43,20 +43,18 @@ class StyleLoss(nn.Module):
         self.set_target(target)
 
     def gram_matrix(self, input):
-        # TODO: check that gram matrix implementation is actually correct
-        # when batch size > 1 the sizes are different to the ones of the target
-
         # The size would be [batch_size, depth, height, width]
         bs, depth, height, width = input.size()
 
-        features = input.view(bs * depth, height * width)
+        features = input.view(bs,  depth, height * width)
+        features_t = features.transpose(1, 2)
 
-        G = torch.matmul(features,
-                         features.t())  # compute the gram product
+        # compute the gram product
+        G = torch.bmm(features, features_t)
 
         # we 'normalize' the values of the gram matrix
         # by dividing by the number of element in each feature maps.
-        return G.div(bs * depth * height * width)
+        return G.div(depth * height * width)
 
     def forward(self, input):
 
