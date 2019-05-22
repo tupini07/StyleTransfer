@@ -135,6 +135,26 @@ class Normalization(nn.Module):
         return (img - self.mean) / self.std
 
 
+class Denormalization(nn.Module):
+    def __init__(self, mean, std):
+        super().__init__()
+        # .view the mean and std to make them [C x 1 x 1] so that they can
+        # directly work with image Tensor of shape [B x C x H x W].
+        # B is batch size. C is number of channels. H is height and W is width.
+        self.mean = (torch.tensor(mean)
+                     .view(-1, 1, 1)
+                     .type(torch.FloatTensor)
+                     .to(constants.DEVICE))
+        self.std = (torch.tensor(std)
+                    .view(-1, 1, 1)
+                    .type(torch.FloatTensor)
+                    .to(constants.DEVICE))
+
+    def forward(self, img):
+        # normalize img
+        return (img * self.std) + self.mean
+
+
 class StyleNetwork(nn.Module):
     # TODO check if these layers are ok
     content_layers = [  # from where image content will be taken
@@ -170,8 +190,8 @@ class StyleNetwork(nn.Module):
             nn.Sequential(
                 Normalization(
                     # normalize image using ImageNet mean and std
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225]).to(constants.DEVICE)
+                    mean=constants.IMAGENET_MEAN,
+                    std=constants.IMAGENET_STD).to(constants.DEVICE)
             )
         ]
 
@@ -359,13 +379,17 @@ class ResidualBlock(nn.Module):
         self.conv1 = nn.Conv2d(in_channels=in_channels,
                                out_channels=out_channels,
                                kernel_size=kernel_size,
-                               stride=stride)
+                               stride=stride,
+                               padding=kernel_size//2,
+                               padding_mode='reflection')
         self.insn1 = nn.InstanceNorm2d(out_channels, affine=True)
         self.relu = nn.ReLU()
         self.conv2 = nn.Conv2d(in_channels=out_channels,
                                out_channels=out_channels,
                                kernel_size=kernel_size,
-                               stride=stride)
+                               stride=stride,
+                               padding=kernel_size//2,
+                               padding_mode='reflection')
 
         self.insn2 = nn.InstanceNorm2d(out_channels, affine=True)
 
@@ -377,8 +401,8 @@ class ResidualBlock(nn.Module):
 
         out = self.conv1(x)
         out = self.insn1(out)
-
         out = self.relu(out)
+
         out = self.conv2(out)
 
         out += residual
@@ -407,13 +431,18 @@ class ImageTransformNet(nn.Sequential):
     def __init__(self, style_image, batch_size=1):
         super().__init__(
 
+            # * normalize image using ImageNet mean and std
+            Normalization(
+                mean=constants.IMAGENET_MEAN,
+                std=constants.IMAGENET_STD),
+
             # * Initial convolutional layers
             # First Conv
             nn.Conv2d(in_channels=3,
                       out_channels=32,
                       kernel_size=9,
                       stride=1,
-                      padding=4,
+                      padding=9//2,
                       padding_mode='reflection'),
             nn.InstanceNorm2d(num_features=32, affine=True),
             nn.ReLU(),
@@ -423,7 +452,8 @@ class ImageTransformNet(nn.Sequential):
                       out_channels=64,
                       kernel_size=3,
                       stride=2,
-                      padding=1),
+                      padding=3//2,
+                      padding_mode='reflection'),
             nn.InstanceNorm2d(num_features=64, affine=True),
             nn.ReLU(),
 
@@ -432,7 +462,7 @@ class ImageTransformNet(nn.Sequential):
                       out_channels=128,
                       kernel_size=3,
                       stride=2,
-                      padding=1,
+                      padding=3//2,
                       padding_mode='reflection'),
             nn.InstanceNorm2d(num_features=128, affine=True),
             nn.ReLU(),
@@ -469,7 +499,7 @@ class ImageTransformNet(nn.Sequential):
                       out_channels=64,
                       kernel_size=3,
                       stride=1,
-                      padding=1,
+                      padding=3//2,
                       padding_mode='reflection'),
             nn.InstanceNorm2d(num_features=64, affine=True),
             nn.ReLU(),
@@ -481,7 +511,7 @@ class ImageTransformNet(nn.Sequential):
                       out_channels=32,
                       kernel_size=3,
                       stride=1,
-                      padding=1,
+                      padding=3//2,
                       padding_mode='reflection'),
             nn.InstanceNorm2d(num_features=32, affine=True),
             nn.ReLU(),
@@ -490,7 +520,14 @@ class ImageTransformNet(nn.Sequential):
             nn.Conv2d(in_channels=32,
                       out_channels=3,
                       kernel_size=9,
-                      stride=1),
+                      stride=1,
+                      padding=9//2,
+                      padding_mode='reflection'),
+
+            # * Finally, denormalize image
+            Denormalization(
+                mean=constants.IMAGENET_MEAN,
+                std=constants.IMAGENET_STD),
         )
 
         # finally, set the style image which
@@ -531,7 +568,7 @@ class ImageTransformNet(nn.Sequential):
         # with torch.no_grad():
         loss_network = StyleNetwork(self.style_image,
                                     torch.rand([1, 3, 256, 256]).to(
-                                        constants.DEVICE)).eval()
+                                        constants.DEVICE))
 
         optimizer = self.get_optimizer(optimizer=optim.Adam)
         # optimizer = self.get_optimizer(optimizer=optim.LBFGS)
@@ -553,13 +590,17 @@ class ImageTransformNet(nn.Sequential):
 
                     def closure():
                         optimizer.zero_grad()
+
+                        # Clamping seems to hurt performance. The network
+                        # starts outputting only 0 for the pixel values
                         # transformed_image = torch.clamp(
                         #     self(image),  # transfor the image
                         #     min=0,
-                        #     max=255 
+                        #     max=255
                         # )
 
                         transformed_image = self(image)
+
                         img_utils.imshow(
                             torch.cat([
                                 transformed_image.squeeze(),
@@ -655,7 +696,8 @@ class ImageTransformNet(nn.Sequential):
                 max=255
             )
 
-            loss_network(transformed_image, content_image=test_batch.squeeze(1))
+            loss_network(transformed_image,
+                         content_image=test_batch.squeeze(1))
 
             style_loss = style_weight * loss_network.get_total_current_style_loss()
             feature_loss = feature_weight * loss_network.get_total_current_feature_loss()
