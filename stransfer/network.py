@@ -466,8 +466,8 @@ class ImageTransformNet(nn.Sequential):
             nn.Upsample(mode='nearest',
                         scale_factor=2),
             nn.Conv2d(in_channels=128,
-                               out_channels=64,
-                               kernel_size=3,
+                      out_channels=64,
+                      kernel_size=3,
                       stride=1,
                       padding=1,
                       padding_mode='reflection'),
@@ -478,8 +478,8 @@ class ImageTransformNet(nn.Sequential):
             nn.Upsample(mode='nearest',
                         scale_factor=2),
             nn.Conv2d(in_channels=64,
-                               out_channels=32,
-                               kernel_size=3,
+                      out_channels=32,
+                      kernel_size=3,
                       stride=1,
                       padding=1,
                       padding_mode='reflection'),
@@ -525,8 +525,10 @@ class ImageTransformNet(nn.Sequential):
         epochs = 50
         steps = 30
         style_weight = 100_000
-        feature_weight = content_weight = 6_000
+        feature_weight = content_weight = 1
 
+        # TODO: try adding the following so that grads are not computed
+        # with torch.no_grad():
         loss_network = StyleNetwork(self.style_image,
                                     torch.rand([1, 3, 256, 256]).to(
                                         constants.DEVICE)).eval()
@@ -551,15 +553,13 @@ class ImageTransformNet(nn.Sequential):
 
                     def closure():
                         optimizer.zero_grad()
+                        # tansformed_image = torch.clamp(
+                        #     self(image),  # transfor the image
+                        #     min=0,
+                        #     max=255 
+                        # )
 
-                        tansformed_image = torch.clamp(
-                            self(image),  # transfor the image
-                            min=0,
-                            max=254 #? is 255 a good value for RGB?
-                                    #? in sample images, all 255 looks black
-                                    #? but it should be white?
-                        )
-
+                        tansformed_image = self(image)
                         img_utils.imshow(
                             torch.cat([
                                 tansformed_image.squeeze(),
@@ -586,7 +586,10 @@ class ImageTransformNet(nn.Sequential):
                         )
 
                         # total_loss = feature_loss + style_loss
-                        total_loss = style_loss + content_loss
+                        # total_loss = style_loss + content_loss
+                        # total_loss = style_loss
+                        # total_loss = feature_loss
+                        total_loss = style_loss + content_loss + regularization_loss
 
                         total_loss.backward()
 
