@@ -428,7 +428,7 @@ class ScaledTanh(nn.Module):
 
 
 class ImageTransformNet(nn.Sequential):
-    def __init__(self, style_image, batch_size=1):
+    def __init__(self, style_image, batch_size=4):
         super().__init__(
 
             # * normalize image using ImageNet mean and std
@@ -585,100 +585,99 @@ class ImageTransformNet(nn.Sequential):
             LOGGER.info('Starting epoch %d', epoch)
 
             for batch in train_loader:
+                batch = batch.squeeze(1)
 
-                for image in batch:
+                def closure():
+                    optimizer.zero_grad()
 
-                    def closure():
-                        optimizer.zero_grad()
+                    # Clamping seems to hurt performance. The network
+                    # starts outputting only 0 for the pixel values
+                    # transformed_image = torch.clamp(
+                    #     self(image),  # transfor the image
+                    #     min=0,
+                    #     max=255
+                    # )
 
-                        # Clamping seems to hurt performance. The network
-                        # starts outputting only 0 for the pixel values
-                        # transformed_image = torch.clamp(
-                        #     self(image),  # transfor the image
-                        #     min=0,
-                        #     max=255
-                        # )
+                    transformed_image = self(batch)
 
-                        transformed_image = self(image)
+                    img_utils.imshow(
+                        torch.cat([
+                            transformed_image[0].squeeze(),
+                            batch[0].squeeze()],
+                            dim=2)
+                    )
 
-                        img_utils.imshow(
-                            torch.cat([
-                                transformed_image.squeeze(),
-                                image.squeeze()],
-                                dim=2)
-                        )
+                    # evaluate how good the transformation is
+                    loss_network(transformed_image,
+                                 content_image=batch)
 
-                        # evaluate how good the transformation is
-                        loss_network(transformed_image,
-                                     content_image=image)
+                    # Get losses
+                    style_loss = loss_network.get_total_current_style_loss(
+                        weight=style_weight
+                    )
+                    feature_loss = loss_network.get_total_current_feature_loss(
+                        weight=feature_weight
+                    )
+                    content_loss = loss_network.get_total_current_content_loss(
+                        weight=content_weight
+                    )
+                    regularization_loss = self.get_total_variation_regularization_loss(
+                        transformed_image
+                    )
 
-                        # Get losses
-                        style_loss = loss_network.get_total_current_style_loss(
-                            weight=style_weight
-                        )
-                        feature_loss = loss_network.get_total_current_feature_loss(
-                            weight=feature_weight
-                        )
-                        content_loss = loss_network.get_total_current_content_loss(
-                            weight=content_weight
-                        )
-                        regularization_loss = self.get_total_variation_regularization_loss(
-                            transformed_image
-                        )
+                    # total_loss = feature_loss + style_loss
+                    # total_loss = style_loss + content_loss
+                    # total_loss = style_loss
+                    # total_loss = feature_loss
+                    total_loss = style_loss + content_loss + regularization_loss
 
-                        # total_loss = feature_loss + style_loss
-                        # total_loss = style_loss + content_loss
-                        # total_loss = style_loss
-                        # total_loss = feature_loss
-                        total_loss = style_loss + content_loss + regularization_loss
+                    total_loss.backward()
 
-                        total_loss.backward()
-
-                        LOGGER.debug('Max of each channel: %s', [
-                                     x.max().item() for x in transformed_image.squeeze()])
-                        LOGGER.debug('Min of each channel: %s', [
-                                     x.min().item() for x in transformed_image.squeeze()])
-                        LOGGER.debug('Sum of each channel: %s', [
-                                     x.sum().item() for x in transformed_image.squeeze()])
-                        LOGGER.debug('Closure loss: %.8f', total_loss)
+                    LOGGER.debug('Max of each channel: %s', [
+                        x.max().item() for x in transformed_image[0].squeeze()])
+                    LOGGER.debug('Min of each channel: %s', [
+                        x.min().item() for x in transformed_image[0].squeeze()])
+                    LOGGER.debug('Sum of each channel: %s', [
+                        x.sum().item() for x in transformed_image[0].squeeze()])
+                    LOGGER.debug('Closure loss: %.8f', total_loss)
 
                     return total_loss
 
-                    total_loss = closure()
+                total_loss = closure()
+
+                TB_WRITER.add_scalar(
+                    'data/fst_train_loss',
+                    total_loss,
+                    iteration)
+
+                if iteration % 10 == 0:
+                    LOGGER.info('Batch Loss: %.8f', total_loss)
+
+                if iteration % 150 == 0:
+                    average_test_loss = self.test(
+                        test_loader, loss_network)
 
                     TB_WRITER.add_scalar(
-                        'data/fst_train_loss',
-                        total_loss,
-                        iteration)
+                        'data/fst_test_loss', average_test_loss, iteration)
 
-                    if iteration % 10 == 0:
-                        LOGGER.info('Batch Loss: %.8f', total_loss)
+                if iteration % 50 == 0:
 
-                    if iteration % 150 == 0:
-                        average_test_loss = self.test(
-                            test_loader, loss_network)
+                    transformed_image = torch.clamp(
+                        self(batch),  # transfor the image
+                        min=0,
+                        max=255
+                    )[0]
 
-                        TB_WRITER.add_scalar(
-                            'data/fst_test_loss', average_test_loss, iteration)
+                    TB_WRITER.add_image('data/fst_images',
+                                        torch.cat([
+                                            transformed_image.squeeze(),
+                                            batch[0].squeeze()],
+                                            dim=2),
+                                        iteration)
+                iteration += 1
 
-                    if iteration % 50 == 0:
-
-                        transformed_image = torch.clamp(
-                            self(image),  # transfor the image
-                            min=0,
-                            max=255
-                        )
-
-                        TB_WRITER.add_image('data/fst_images',
-                                            torch.cat([
-                                                transformed_image.squeeze(),
-                                                batch[0].squeeze()],
-                                                dim=2),
-                                            iteration)
-                    iteration += 1
-
-                    # after processing the batch, run the gradient update
-                    optimizer.step(closure)
+                # after processing the batch, run the gradient update
+                optimizer.step(closure)
 
     def test(self, test_loader, loss_network):
         # TODO: parametrize
