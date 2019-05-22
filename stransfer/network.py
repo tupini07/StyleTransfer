@@ -500,12 +500,20 @@ class ImageTransformNet(nn.Sequential):
 
         # we need to ensure that we have enough style images for the batch
         # NOTE: this could also be accomplished by letting pytorch broadcast
-        LOGGER.debug(
-            'Repeating style image across batch dim to match specified batch size of "%d"',
-            batch_size)
-
-        self.style_image = style_image.repeat(batch_size, 1, 1, 1)
+        self.style_image = style_image
         self.batch_size = batch_size
+
+    def get_total_variation_regularization_loss(self, transformed_image: torch.Tensor,
+                                                regularization_factor=1e-6) -> torch.Tensor:
+        # ? see: https://en.wikipedia.org/wiki/Total_variation_denoising#2D_signal_images
+        return regularization_factor * (
+            torch.sum(torch.abs(
+                transformed_image[:, :, :, :-1] - transformed_image[:, :, :, 1:])
+            ) +
+            torch.sum(
+                torch.abs(
+                    transformed_image[:, :, :-1, :] - transformed_image[:, :, 1:, :])
+            ))
 
     def get_optimizer(self, optimizer=optim.Adam):
         params = self.parameters()
