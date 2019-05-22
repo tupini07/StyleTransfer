@@ -230,29 +230,29 @@ class StyleNetwork(nn.Module):
 
         return x
 
-    def get_total_current_content_loss(self):
+    def get_total_current_content_loss(self, weight=1):
         """
         Returns the sum of all the `loss` present in all
         *content* nodes
         """
 
-        return torch.stack([x[0].loss for x in self.content_losses]).sum()
+        return weight * torch.stack([x[0].loss for x in self.content_losses]).sum()
 
-    def get_total_current_feature_loss(self):
+    def get_total_current_feature_loss(self, weight=1):
         """
         Returns the sum of all the `loss` present in all
         *content* nodes
         """
 
-        return torch.stack([x[0].loss for x in self.feature_losses]).sum()
+        return weight * torch.stack([x[0].loss for x in self.feature_losses]).sum()
 
-    def get_total_current_style_loss(self):
+    def get_total_current_style_loss(self, weight=1):
         """
         Returns the sum of all the `loss` present in all
         *style* nodes
         """
 
-        return torch.stack([x[0].loss for x in self.style_losses]).sum()
+        return weight * torch.stack([x[0].loss for x in self.style_losses]).sum()
 
     def forward(self, input_image, content_image=None, style_image=None):
 
@@ -330,11 +330,10 @@ class StyleNetwork(nn.Module):
                 self(input_image, content_image)
 
                 # get losses
-                style_loss = self.get_total_current_style_loss()
-                content_loss = self.get_total_current_content_loss()
-
-                style_loss *= style_weight
-                content_loss *= content_weight
+                style_loss = self.get_total_current_style_loss(
+                    weight=style_weight)
+                content_loss = self.get_total_current_content_loss(
+                    weight=content_weight)
 
                 total_loss = style_loss + content_loss
                 total_loss.backward()
@@ -565,13 +564,18 @@ class ImageTransformNet(nn.Sequential):
                                      content_image=image)
 
                         # Get losses
-                        style_loss = loss_network.get_total_current_style_loss()
-                        feature_loss = loss_network.get_total_current_feature_loss()
-                        content_loss = loss_network.get_total_current_content_loss()
-
-                        style_loss *= style_weight
-                        feature_loss *= feature_weight # * feature_weight
-                        content_loss *= content_weight
+                        style_loss = loss_network.get_total_current_style_loss(
+                            weight=style_weight
+                        )
+                        feature_loss = loss_network.get_total_current_feature_loss(
+                            weight=feature_weight
+                        )
+                        content_loss = loss_network.get_total_current_content_loss(
+                            weight=content_weight
+                        )
+                        regularization_loss = self.get_total_variation_regularization_loss(
+                            tansformed_image
+                        )
 
                         # total_loss = feature_loss + style_loss
                         total_loss = style_loss + content_loss
