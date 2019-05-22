@@ -531,8 +531,8 @@ class ImageTransformNet(nn.Sequential):
                                     torch.rand([1, 3, 256, 256]).to(
                                         constants.DEVICE)).eval()
 
-        # optimizer = self.get_optimizer(optimizer=optim.Adam)
-        optimizer = [self.get_optimizer(optimizer=optim.LBFGS)]
+        optimizer = self.get_optimizer(optimizer=optim.Adam)
+        # optimizer = self.get_optimizer(optimizer=optim.LBFGS)
 
         LOGGER.info('Training network with "%s" optimizer', type(optimizer))
 
@@ -550,7 +550,7 @@ class ImageTransformNet(nn.Sequential):
                 for image in batch:
 
                     def closure():
-                        optimizer[0].zero_grad()
+                        optimizer.zero_grad()
 
                         tansformed_image = torch.clamp(
                             self(image),  # transfor the image
@@ -607,7 +607,6 @@ class ImageTransformNet(nn.Sequential):
                         total_loss,
                         iteration)
 
-
                     if iteration % 10 == 0:
                         LOGGER.info('Batch Loss: %.8f', total_loss)
 
@@ -635,7 +634,7 @@ class ImageTransformNet(nn.Sequential):
                     iteration += 1
 
                     # after processing the batch, run the gradient update
-                    optimizer[0].step(closure)
+                    optimizer.step(closure)
 
     def test(self, test_loader, loss_network):
         # TODO: parametrize
