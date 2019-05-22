@@ -408,6 +408,7 @@ class ImageTransformNet(nn.Sequential):
     def __init__(self, style_image, batch_size=1):
         super().__init__(
 
+            # * Initial convolutional layers
             # First Conv
             nn.Conv2d(in_channels=3,
                       out_channels=32,
@@ -437,7 +438,7 @@ class ImageTransformNet(nn.Sequential):
             nn.InstanceNorm2d(num_features=128, affine=True),
             nn.ReLu(),
 
-            # Residual blocks
+            # * Residual blocks
             ResidualBlock(in_channels=128,
                           out_channels=128,
                           kernel_size=3),
@@ -458,37 +459,39 @@ class ImageTransformNet(nn.Sequential):
                           out_channels=128,
                           kernel_size=3),
 
-            nn.ConvTranspose2d(in_channels=128,
+            # * Deconvolution layers
+            # ? According to https://distill.pub/2016/deconv-checkerboard/
+            # ? an upsampling layer followed by a convolution layer
+            # ? yields better results
+            # First 'deconvolution' layer
+            nn.Upsample(mode='nearest',
+                        scale_factor=2),
+            nn.Conv2d(in_channels=128,
                                out_channels=64,
                                kernel_size=3,
-                               stride=2,
-                               padding=1),
-            nn.BatchNorm2d(num_features=64),
+                      stride=1,
+                      padding=1,
+                      padding_mode='reflection'),
+            nn.InstanceNorm2d(num_features=64, affine=True),
             nn.ReLU(),
 
-
-            nn.ConvTranspose2d(in_channels=64,
+            # Second 'deconvolution' layer
+            nn.Upsample(mode='nearest',
+                        scale_factor=2),
+            nn.Conv2d(in_channels=64,
                                out_channels=32,
                                kernel_size=3,
-                               stride=2,
-                               padding=0),
-            nn.BatchNorm2d(num_features=32),
+                      stride=1,
+                      padding=1,
+                      padding_mode='reflection'),
+            nn.InstanceNorm2d(num_features=32, affine=True),
             nn.ReLU(),
 
-            nn.ZeroPad2d((1, 0, 1, 0)),
-
-            # TODO currently a bit hackish since we use
-            # padding to have correct shape. Check if this is needed
+            # * Final convolutional layer
             nn.Conv2d(in_channels=32,
                       out_channels=3,
                       kernel_size=9,
-                      stride=1,
-                      padding=4),
-
-            # TODO check if batch norm is needed
-            # for the last layer
-            nn.BatchNorm2d(num_features=3),
-            ScaledTanh(min_=0, max_=255)
+                      stride=1),
         )
 
         # finally, set the style image which
