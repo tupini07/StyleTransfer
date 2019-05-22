@@ -354,41 +354,38 @@ class StyleNetwork(nn.Module):
 # https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/deep_residual_network/main.py
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels,
-                 kernel_size=3, stride=1, downsample=None,
-                 padding=1):
+                 kernel_size=3, stride=1):
         super().__init__()
 
         self.conv1 = nn.Conv2d(in_channels=in_channels,
                                out_channels=out_channels,
                                kernel_size=kernel_size,
-                               stride=stride,
-                               padding=padding,
-                               bias=False)
-        self.bn1 = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
+                               stride=stride)
+        self.insn1 = nn.InstanceNorm2d(out_channels, affine=True)
+        self.relu = nn.ReLU()
         self.conv2 = nn.Conv2d(in_channels=out_channels,
                                out_channels=out_channels,
                                kernel_size=kernel_size,
-                               stride=stride,
-                               padding=padding,
-                               bias=False)
-        self.bn2 = nn.BatchNorm2d(out_channels)
-        self.downsample = downsample
+                               stride=stride)
+
+        self.insn2 = nn.InstanceNorm2d(out_channels, affine=True)
 
     def forward(self, x):
-        # architecure of the rasidual block was taken from
+        # architecure of the residual block was taken from
         # Gross and Wilber (Training and investigating residual nets)
         # http://torch.ch/blog/2016/02/04/resnets.html
         residual = x
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
 
+        out = self.conv1(x)
+        out = self.insn1(out)
+
+        out = self.relu(out)
         out = self.conv2(out)
-        if self.downsample:
-            residual = self.downsample(x)
+
         out += residual
-        out = self.bn2(out)
+
+        out = self.insn2(out)
+
         return out
 
 
@@ -411,33 +408,36 @@ class ImageTransformNet(nn.Sequential):
     def __init__(self, style_image, batch_size=1):
         super().__init__(
 
-            # TODO in paper the ouptut of this should be
-            # 32x256x256, but as it currently is the output is
-            # 32x250x250
+            # First Conv
             nn.Conv2d(in_channels=3,
                       out_channels=32,
                       kernel_size=9,
                       stride=1,
-                      padding=4),
-            nn.BatchNorm2d(num_features=32),
-            nn.ReLU(),
+                      padding=4,
+                      padding_mode='reflection'),
+            nn.InstanceNorm2d(num_features=32, affine=True),
+            nn.ReLu(),
 
+            # Second Conv
             nn.Conv2d(in_channels=32,
                       out_channels=64,
                       kernel_size=3,
                       stride=2,
                       padding=1),
-            nn.BatchNorm2d(num_features=64),
-            nn.ReLU(),
+            nn.InstanceNorm2d(num_features=64, affine=True),
+            nn.ReLu(),
 
+            # Third Conv
             nn.Conv2d(in_channels=64,
                       out_channels=128,
                       kernel_size=3,
                       stride=2,
-                      padding=1),
-            nn.BatchNorm2d(num_features=128),
-            nn.ReLU(),
+                      padding=1,
+                      padding_mode='reflection'),
+            nn.InstanceNorm2d(num_features=128, affine=True),
+            nn.ReLu(),
 
+            # Residual blocks
             ResidualBlock(in_channels=128,
                           out_channels=128,
                           kernel_size=3),
