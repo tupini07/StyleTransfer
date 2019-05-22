@@ -59,12 +59,14 @@ class StyleLoss(nn.Module):
     def forward(self, input):
 
         G = self.gram_matrix(input)
-        self.loss = F.mse_loss(G, self.target)
+        self.loss = F.mse_loss(G,
+                               # correct the fact that we only have one
+                               # style image for the whole batch
+                               self.target.expand_as(G))
 
         return input
 
     def set_target(self, target):
-        # TODO Check that detach is actually necesary here
         # Here the target is the conv layer which we're taking as reference
         # as the style source
         self.target = self.gram_matrix(target).detach()
