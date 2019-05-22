@@ -7,7 +7,7 @@ __pycache__/
 *.jpg
 runs/*
 events.out.tfevents*
-
+*.7z
 # C extensions
 *.so
 

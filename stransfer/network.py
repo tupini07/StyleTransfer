@@ -1,21 +1,30 @@
 import copy
 import logging
+import shutil
 from collections import OrderedDict
-
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
+from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
-from stransfer import c_logging, constants, img_utils, dataset
-from tensorboardX import SummaryWriter
+from stransfer import c_logging, constants, dataset, img_utils
 
 LOGGER = c_logging.get_logger()
-TB_WRITER = SummaryWriter('runs/optimize-after-step_feature-style-loss')
 
+TENSORBOARD_PATH = 'runs/optimize-after-real-batch_feature-style-loss'
+
+shutil.rmtree(TENSORBOARD_PATH, ignore_errors=True)
+
+TB_WRITER = SummaryWriter(TENSORBOARD_PATH)
+TB_WRITER.add_text('note', ('For this run, the loss is calculated for a real batch'
+                            'and then the optimization step '
+                            'is made. Images in batch are only seen once '
+                            '(only one "step" is made for each image. '
+                            'The new feature+style loss is used.'), 0)
 
 _VGG = torchvision.models.vgg19(pretrained=True)
 _VGG = (_VGG
@@ -34,27 +43,30 @@ class StyleLoss(nn.Module):
         self.set_target(target)
 
     def gram_matrix(self, input):
-        # TODO: check that gram matrix implementation is actually correct
-        # when batch size > 1 the sizes are different to the ones of the target
-
         # The size would be [batch_size, depth, height, width]
         bs, depth, height, width = input.size()
 
-        features = input.view(bs * depth, height * width)
+        features = input.view(bs,  depth, height * width)
+        features_t = features.transpose(1, 2)
 
-        G = torch.mm(features, features.t())  # compute the gram product
+        # compute the gram product
+        G = torch.bmm(features, features_t)
 
         # we 'normalize' the values of the gram matrix
         # by dividing by the number of element in each feature maps.
-        return G.div(bs * depth * height * width)
+        return G.div(depth * height * width)
 
     def forward(self, input):
+
         G = self.gram_matrix(input)
-        self.loss = F.mse_loss(G, self.target)
+        self.loss = F.mse_loss(G,
+                               # correct the fact that we only have one
+                               # style image for the whole batch
+                               self.target.expand_as(G))
+
         return input
 
     def set_target(self, target):
-        # TODO Check that detach is actually necesary here
         # Here the target is the conv layer which we're taking as reference
         # as the style source
         self.target = self.gram_matrix(target).detach()
@@ -123,6 +135,26 @@ class Normalization(nn.Module):
         return (img - self.mean) / self.std
 
 
+class Denormalization(nn.Module):
+    def __init__(self, mean, std):
+        super().__init__()
+        # .view the mean and std to make them [C x 1 x 1] so that they can
+        # directly work with image Tensor of shape [B x C x H x W].
+        # B is batch size. C is number of channels. H is height and W is width.
+        self.mean = (torch.tensor(mean)
+                     .view(-1, 1, 1)
+                     .type(torch.FloatTensor)
+                     .to(constants.DEVICE))
+        self.std = (torch.tensor(std)
+                    .view(-1, 1, 1)
+                    .type(torch.FloatTensor)
+                    .to(constants.DEVICE))
+
+    def forward(self, img):
+        # normalize img
+        return (img * self.std) + self.mean
+
+
 class StyleNetwork(nn.Module):
     # TODO check if these layers are ok
     content_layers = [  # from where image content will be taken
@@ -158,8 +190,8 @@ class StyleNetwork(nn.Module):
             nn.Sequential(
                 Normalization(
                     # normalize image using ImageNet mean and std
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225]).to(constants.DEVICE)
+                    mean=constants.IMAGENET_MEAN,
+                    std=constants.IMAGENET_STD).to(constants.DEVICE)
             )
         ]
 
@@ -218,29 +250,29 @@ class StyleNetwork(nn.Module):
 
         return x
 
-    def get_total_current_content_loss(self):
+    def get_total_current_content_loss(self, weight=1):
         """
         Returns the sum of all the `loss` present in all
         *content* nodes
         """
 
-        return torch.stack([x[0].loss for x in self.content_losses]).sum()
+        return weight * torch.stack([x[0].loss for x in self.content_losses]).sum()
 
-    def get_total_current_feature_loss(self):
+    def get_total_current_feature_loss(self, weight=1):
         """
         Returns the sum of all the `loss` present in all
         *content* nodes
         """
 
-        return torch.stack([x[0].loss for x in self.feature_losses]).sum()
+        return weight * torch.stack([x[0].loss for x in self.feature_losses]).sum()
 
-    def get_total_current_style_loss(self):
+    def get_total_current_style_loss(self, weight=1):
         """
         Returns the sum of all the `loss` present in all
         *style* nodes
         """
 
-        return torch.stack([x[0].loss for x in self.style_losses]).sum()
+        return weight * torch.stack([x[0].loss for x in self.style_losses]).sum()
 
     def forward(self, input_image, content_image=None, style_image=None):
 
@@ -318,11 +350,10 @@ class StyleNetwork(nn.Module):
                 self(input_image, content_image)
 
                 # get losses
-                style_loss = self.get_total_current_style_loss()
-                content_loss = self.get_total_current_content_loss()
-
-                style_loss *= style_weight
-                content_loss *= content_weight
+                style_loss = self.get_total_current_style_loss(
+                    weight=style_weight)
+                content_loss = self.get_total_current_content_loss(
+                    weight=content_weight)
 
                 total_loss = style_loss + content_loss
                 total_loss.backward()
@@ -342,41 +373,42 @@ class StyleNetwork(nn.Module):
 # https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/deep_residual_network/main.py
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels,
-                 kernel_size=3, stride=1, downsample=None,
-                 padding=1):
+                 kernel_size=3, stride=1):
         super().__init__()
 
         self.conv1 = nn.Conv2d(in_channels=in_channels,
                                out_channels=out_channels,
                                kernel_size=kernel_size,
                                stride=stride,
-                               padding=padding,
-                               bias=False)
-        self.bn1 = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
+                               padding=kernel_size//2,
+                               padding_mode='reflection')
+        self.insn1 = nn.InstanceNorm2d(out_channels, affine=True)
+        self.relu = nn.ReLU()
         self.conv2 = nn.Conv2d(in_channels=out_channels,
                                out_channels=out_channels,
                                kernel_size=kernel_size,
                                stride=stride,
-                               padding=padding,
-                               bias=False)
-        self.bn2 = nn.BatchNorm2d(out_channels)
-        self.downsample = downsample
+                               padding=kernel_size//2,
+                               padding_mode='reflection')
+
+        self.insn2 = nn.InstanceNorm2d(out_channels, affine=True)
 
     def forward(self, x):
-        # architecure of the rasidual block was taken from
+        # architecure of the residual block was taken from
         # Gross and Wilber (Training and investigating residual nets)
         # http://torch.ch/blog/2016/02/04/resnets.html
         residual = x
+
         out = self.conv1(x)
-        out = self.bn1(out)
+        out = self.insn1(out)
         out = self.relu(out)
 
         out = self.conv2(out)
-        if self.downsample:
-            residual = self.downsample(x)
+
         out += residual
-        out = self.bn2(out)
+
+        out = self.insn2(out)
+
         return out
 
 
@@ -396,36 +428,46 @@ class ScaledTanh(nn.Module):
 
 
 class ImageTransformNet(nn.Sequential):
-    def __init__(self, style_image):
+    def __init__(self, style_image, batch_size=4):
         super().__init__(
 
-            # TODO in paper the ouptut of this should be
-            # 32x256x256, but as it currently is the output is
-            # 32x250x250
+            # * normalize image using ImageNet mean and std
+            Normalization(
+                mean=constants.IMAGENET_MEAN,
+                std=constants.IMAGENET_STD),
+
+            # * Initial convolutional layers
+            # First Conv
             nn.Conv2d(in_channels=3,
                       out_channels=32,
                       kernel_size=9,
                       stride=1,
-                      padding=4),
-            nn.BatchNorm2d(num_features=32),
+                      padding=9//2,
+                      padding_mode='reflection'),
+            nn.InstanceNorm2d(num_features=32, affine=True),
             nn.ReLU(),
 
+            # Second Conv
             nn.Conv2d(in_channels=32,
                       out_channels=64,
                       kernel_size=3,
                       stride=2,
-                      padding=1),
-            nn.BatchNorm2d(num_features=64),
+                      padding=3//2,
+                      padding_mode='reflection'),
+            nn.InstanceNorm2d(num_features=64, affine=True),
             nn.ReLU(),
 
+            # Third Conv
             nn.Conv2d(in_channels=64,
                       out_channels=128,
                       kernel_size=3,
                       stride=2,
-                      padding=1),
-            nn.BatchNorm2d(num_features=128),
+                      padding=3//2,
+                      padding_mode='reflection'),
+            nn.InstanceNorm2d(num_features=128, affine=True),
             nn.ReLU(),
 
+            # * Residual blocks
             ResidualBlock(in_channels=128,
                           out_channels=128,
                           kernel_size=3),
@@ -446,44 +488,69 @@ class ImageTransformNet(nn.Sequential):
                           out_channels=128,
                           kernel_size=3),
 
-            nn.ConvTranspose2d(in_channels=128,
-                               out_channels=64,
-                               kernel_size=3,
-                               stride=2,
-                               padding=1),
-            nn.BatchNorm2d(num_features=64),
+            # * Deconvolution layers
+            # ? According to https://distill.pub/2016/deconv-checkerboard/
+            # ? an upsampling layer followed by a convolution layer
+            # ? yields better results
+            # First 'deconvolution' layer
+            nn.Upsample(mode='nearest',
+                        scale_factor=2),
+            nn.Conv2d(in_channels=128,
+                      out_channels=64,
+                      kernel_size=3,
+                      stride=1,
+                      padding=3//2,
+                      padding_mode='reflection'),
+            nn.InstanceNorm2d(num_features=64, affine=True),
             nn.ReLU(),
 
-
-            nn.ConvTranspose2d(in_channels=64,
-                               out_channels=32,
-                               kernel_size=3,
-                               stride=2,
-                               padding=0),
-            nn.BatchNorm2d(num_features=32),
+            # Second 'deconvolution' layer
+            nn.Upsample(mode='nearest',
+                        scale_factor=2),
+            nn.Conv2d(in_channels=64,
+                      out_channels=32,
+                      kernel_size=3,
+                      stride=1,
+                      padding=3//2,
+                      padding_mode='reflection'),
+            nn.InstanceNorm2d(num_features=32, affine=True),
             nn.ReLU(),
 
-            nn.ZeroPad2d((1, 0, 1, 0)),
-
-            # TODO currently a bit hackish since we use
-            # padding to have correct shape. Check if this is needed
+            # * Final convolutional layer
             nn.Conv2d(in_channels=32,
                       out_channels=3,
                       kernel_size=9,
                       stride=1,
-                      padding=4),
+                      padding=9//2,
+                      padding_mode='reflection'),
 
-            # TODO check if batch norm is needed
-            # for the last layer
-            nn.BatchNorm2d(num_features=3),
-            ScaledTanh(min_=0, max_=255)
+            # * Finally, denormalize image
+            Denormalization(
+                mean=constants.IMAGENET_MEAN,
+                std=constants.IMAGENET_STD),
         )
 
         # finally, set the style image which
         # transform network represents
         assert isinstance(
             style_image, torch.Tensor), 'Style image need to be already loaded'
+
+        # we need to ensure that we have enough style images for the batch
+        # NOTE: this could also be accomplished by letting pytorch broadcast
         self.style_image = style_image
+        self.batch_size = batch_size
+
+    def get_total_variation_regularization_loss(self, transformed_image: torch.Tensor,
+                                                regularization_factor=1e-6) -> torch.Tensor:
+        # ? see: https://en.wikipedia.org/wiki/Total_variation_denoising#2D_signal_images
+        return regularization_factor * (
+            torch.sum(torch.abs(
+                transformed_image[:, :, :, :-1] - transformed_image[:, :, :, 1:])
+            ) +
+            torch.sum(
+                torch.abs(
+                    transformed_image[:, :, :-1, :] - transformed_image[:, :, 1:, :])
+            ))
 
     def get_optimizer(self, optimizer=optim.Adam):
         params = self.parameters()
@@ -494,71 +561,123 @@ class ImageTransformNet(nn.Sequential):
         # TODO: parametrize
         epochs = 50
         steps = 30
-        style_weight = 1000000
-        feature_weight = 1
+        style_weight = 100_000
+        feature_weight = content_weight = 1
 
+        # TODO: try adding the following so that grads are not computed
+        # with torch.no_grad():
         loss_network = StyleNetwork(self.style_image,
-                                    torch.rand([1, 3, 256, 256]).to(constants.DEVICE))
+                                    torch.rand([1, 3, 256, 256]).to(
+                                        constants.DEVICE))
 
-        optimizer = self.get_optimizer()
+        optimizer = self.get_optimizer(optimizer=optim.Adam)
+        # optimizer = self.get_optimizer(optimizer=optim.LBFGS)
+
+        LOGGER.info('Training network with "%s" optimizer', type(optimizer))
+
         iteration = 0
 
         test_loader, train_loader = dataset.get_coco_loader(test_split=0.10,
-                                                            test_limit=100)
+                                                            test_limit=20,
+                                                            batch_size=self.batch_size)
         for epoch in range(epochs):
 
             LOGGER.info('Starting epoch %d', epoch)
 
             for batch in train_loader:
+                batch = batch.squeeze(1)
 
-                for image in batch:
+                def closure():
+                    optimizer.zero_grad()
 
-                    assert isinstance(
-                        image, torch.Tensor), 'Images need to be already loaded'
+                    # Clamping seems to hurt performance. The network
+                    # starts outputting only 0 for the pixel values
+                    # transformed_image = torch.clamp(
+                    #     self(image),  # transfor the image
+                    #     min=0,
+                    #     max=255
+                    # )
 
-                    # for step in tqdm(range(steps)):
-                    for step in range(steps):
-                        optimizer.zero_grad()
+                    transformed_image = self(batch)
 
-                        tansformed_image = self(image)  # transfor the image
-                        # evaluate how good the transformation is
-                        loss_network(tansformed_image)
+                    img_utils.imshow(
+                        torch.cat([
+                            transformed_image[0].squeeze(),
+                            batch[0].squeeze()],
+                            dim=2)
+                    )
 
-                        # Get losses
-                        style_loss = loss_network.get_total_current_style_loss()
-                        feature_loss = loss_network.get_total_current_feature_loss()
+                    # evaluate how good the transformation is
+                    loss_network(transformed_image,
+                                 content_image=batch)
 
-                        style_loss *= style_weight
-                        feature_loss *= feature_weight
+                    # Get losses
+                    style_loss = loss_network.get_total_current_style_loss(
+                        weight=style_weight
+                    )
+                    feature_loss = loss_network.get_total_current_feature_loss(
+                        weight=feature_weight
+                    )
+                    content_loss = loss_network.get_total_current_content_loss(
+                        weight=content_weight
+                    )
+                    regularization_loss = self.get_total_variation_regularization_loss(
+                        transformed_image
+                    )
 
-                        total_loss = style_loss + feature_loss
+                    # total_loss = feature_loss + style_loss
+                    # total_loss = style_loss + content_loss
+                    # total_loss = style_loss
+                    # total_loss = feature_loss
+                    total_loss = style_loss + content_loss + regularization_loss
 
-                        total_loss.backward()
+                    total_loss.backward()
 
-                        # TODO currently the optimization step is done once for each step
-                        # of the image. Need to see if this is good or if we should do
-                        # the optimization step once every batch and remove the loop on the
-                        # steps
-                        TB_WRITER.add_scalar(
-                            'data/fst_train_loss', total_loss, iteration)
+                    LOGGER.debug('Max of each channel: %s', [
+                        x.max().item() for x in transformed_image[0].squeeze()])
+                    LOGGER.debug('Min of each channel: %s', [
+                        x.min().item() for x in transformed_image[0].squeeze()])
+                    LOGGER.debug('Sum of each channel: %s', [
+                        x.sum().item() for x in transformed_image[0].squeeze()])
+                    LOGGER.debug('Closure loss: %.8f', total_loss)
 
-                        if iteration % 100 == 0:
-                            LOGGER.info('Loss: %.8f', total_loss)
+                    return total_loss
 
-                        if iteration % 1000 == 0:
-                            average_test_loss = self.test(
-                                test_loader, loss_network)
-                            TB_WRITER.add_scalar(
-                                'data/fst_test_loss', average_test_loss, iteration)
-                            TB_WRITER.add_image('data/fst_images',
-                                                torch.cat([tansformed_image.squeeze(),
-                                                           image.squeeze()],
-                                                          dim=2),
-                                                iteration)
-                        iteration += 1
+                total_loss = closure()
 
-                        # after processing the batch, run the gradient update
-                        optimizer.step()
+                TB_WRITER.add_scalar(
+                    'data/fst_train_loss',
+                    total_loss,
+                    iteration)
+
+                if iteration % 10 == 0:
+                    LOGGER.info('Batch Loss: %.8f', total_loss)
+
+                if iteration % 150 == 0:
+                    average_test_loss = self.test(
+                        test_loader, loss_network)
+
+                    TB_WRITER.add_scalar(
+                        'data/fst_test_loss', average_test_loss, iteration)
+
+                if iteration % 50 == 0:
+
+                    transformed_image = torch.clamp(
+                        self(batch),  # transfor the image
+                        min=0,
+                        max=255
+                    )[0]
+
+                    TB_WRITER.add_image('data/fst_images',
+                                        torch.cat([
+                                            transformed_image.squeeze(),
+                                            batch[0].squeeze()],
+                                            dim=2),
+                                        iteration)
+                iteration += 1
+
+                # after processing the batch, run the gradient update
+                optimizer.step(closure)
 
     def test(self, test_loader, loss_network):
         # TODO: parametrize
@@ -570,14 +689,19 @@ class ImageTransformNet(nn.Sequential):
         total_test_loss = []
         for test_batch in test_loader:
 
-            for test_img in test_batch:
-                tansformed_image = self(test_img)
-                loss_network(tansformed_image)
+            transformed_image = torch.clamp(
+                self(test_batch.squeeze(1)),  # transfor the image
+                min=0,
+                max=255
+            )
 
-                style_loss = style_weight * loss_network.get_total_current_style_loss()
-                feature_loss = feature_weight * loss_network.get_total_current_feature_loss()
+            loss_network(transformed_image,
+                         content_image=test_batch.squeeze(1))
 
-                total_test_loss.append((style_loss + feature_loss).item())
+            style_loss = style_weight * loss_network.get_total_current_style_loss()
+            feature_loss = feature_weight * loss_network.get_total_current_feature_loss()
+
+            total_test_loss.append((style_loss + feature_loss).item())
 
         average_test_loss = torch.mean(torch.Tensor(total_test_loss))
         LOGGER.info('Average test loss: %.8f', average_test_loss)
