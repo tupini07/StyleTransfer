@@ -24,9 +24,11 @@ def image_loader_transform(image: Image) -> torch.Tensor:
     image = load_transforms(image).unsqueeze(0)
 
     img_mean = (torch.tensor(constants.IMAGENET_MEAN)
-                .view(-1, 1, 1))
+                .view(-1, 1, 1)
+                .to(constants.DEVICE))
     img_std = (torch.tensor(constants.IMAGENET_STD)
-               .view(-1, 1, 1))
+               .view(-1, 1, 1)
+               .to(constants.DEVICE))
 
     image = image.to(constants.DEVICE, torch.float)
 
