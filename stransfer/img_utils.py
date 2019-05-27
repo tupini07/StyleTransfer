@@ -16,6 +16,10 @@ def image_loader(image_name) -> torch.Tensor:
         transforms.CenterCrop(min_dimension),
         transforms.Resize(constants.IMSIZE),  # scale imported image
         transforms.ToTensor(),  # transform it into a torch tensor
+        transforms.Normalize(  # Normalize using imagenet mean and std
+            mean=constants.IMAGENET_MEAN,
+            std=constants.IMAGENET_STD
+        )
     ])
 
     # fake batch dimension required to fit network's input dimensions
@@ -25,7 +29,14 @@ def image_loader(image_name) -> torch.Tensor:
     return image
 
 
-def imshow(image_tensor, path="out.bmp"):
+def concat_images(im1, im2, dim=2) -> torch.Tensor:
+    return torch.cat([
+        im1,
+        im2],
+        dim=2)
+
+
+def imshow(image_tensor, ground_truth_image=None, path="out.bmp"):
     # clamp image to legal RGB values before showing
     image = torch.clamp(
         image_tensor.cpu().clone(),  # we clone the tensor to not do changes on it
@@ -35,6 +46,20 @@ def imshow(image_tensor, path="out.bmp"):
 
     image = image.squeeze(0)      # remove the fake batch dimension, if any
 
+    # concat with ground truth if specified
+    if ground_truth_image is not None:
+        image = concat_images(image, ground_truth_image)
+
+    # denormalize image
+    img_mean = (torch.tensor(constants.IMAGENET_MEAN)
+                .view(-1, 1, 1))
+    img_std = (torch.tensor(constants.IMAGENET_STD)
+               .view(-1, 1, 1))
+
+    image = (image * torch.Tensor(img_std)) + \
+        torch.Tensor(img_mean)
+
+    # concat with ground truth if any
     tpil = transforms.ToPILImage()
     image = tpil(image)
 

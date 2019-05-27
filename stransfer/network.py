@@ -115,46 +115,6 @@ class FeatureReconstructionLoss (nn.Module):
         return input
 
 
-class Normalization(nn.Module):
-    def __init__(self, mean, std):
-        super().__init__()
-        # .view the mean and std to make them [C x 1 x 1] so that they can
-        # directly work with image Tensor of shape [B x C x H x W].
-        # B is batch size. C is number of channels. H is height and W is width.
-        self.mean = (torch.tensor(mean)
-                     .view(-1, 1, 1)
-                     .type(torch.FloatTensor)
-                     .to(constants.DEVICE))
-        self.std = (torch.tensor(std)
-                    .view(-1, 1, 1)
-                    .type(torch.FloatTensor)
-                    .to(constants.DEVICE))
-
-    def forward(self, img):
-        # normalize img
-        return (img - self.mean) / self.std
-
-
-class Denormalization(nn.Module):
-    def __init__(self, mean, std):
-        super().__init__()
-        # .view the mean and std to make them [C x 1 x 1] so that they can
-        # directly work with image Tensor of shape [B x C x H x W].
-        # B is batch size. C is number of channels. H is height and W is width.
-        self.mean = (torch.tensor(mean)
-                     .view(-1, 1, 1)
-                     .type(torch.FloatTensor)
-                     .to(constants.DEVICE))
-        self.std = (torch.tensor(std)
-                    .view(-1, 1, 1)
-                    .type(torch.FloatTensor)
-                    .to(constants.DEVICE))
-
-    def forward(self, img):
-        # normalize img
-        return (img * self.std) + self.mean
-
-
 class StyleNetwork(nn.Module):
     # TODO check if these layers are ok
     content_layers = [  # from where image content will be taken
@@ -187,12 +147,7 @@ class StyleNetwork(nn.Module):
         vgg = copy.deepcopy(_VGG)
 
         self.net_pieces = [
-            nn.Sequential(
-                Normalization(
-                    # normalize image using ImageNet mean and std
-                    mean=constants.IMAGENET_MEAN,
-                    std=constants.IMAGENET_STD).to(constants.DEVICE)
-            )
+            nn.Sequential()
         ]
 
         loss_added = False
@@ -431,11 +386,6 @@ class ImageTransformNet(nn.Sequential):
     def __init__(self, style_image, batch_size=4):
         super().__init__(
 
-            # * normalize image using ImageNet mean and std
-            Normalization(
-                mean=constants.IMAGENET_MEAN,
-                std=constants.IMAGENET_STD),
-
             # * Initial convolutional layers
             # First Conv
             nn.Conv2d(in_channels=3,
@@ -524,10 +474,6 @@ class ImageTransformNet(nn.Sequential):
                       padding=9//2,
                       padding_mode='reflection'),
 
-            # * Finally, denormalize image
-            Denormalization(
-                mean=constants.IMAGENET_MEAN,
-                std=constants.IMAGENET_STD),
         )
 
         # finally, set the style image which
@@ -601,10 +547,8 @@ class ImageTransformNet(nn.Sequential):
                     transformed_image = self(batch)
 
                     img_utils.imshow(
-                        torch.cat([
-                            transformed_image[0].squeeze(),
-                            batch[0].squeeze()],
-                            dim=2)
+                        image_tensor=transformed_image[0].squeeze(),
+                        ground_truth_image=batch[0].squeeze()
                     )
 
                     # evaluate how good the transformation is
@@ -669,10 +613,9 @@ class ImageTransformNet(nn.Sequential):
                     )[0]
 
                     TB_WRITER.add_image('data/fst_images',
-                                        torch.cat([
+                                        img_utils.concat_images(
                                             transformed_image.squeeze(),
-                                            batch[0].squeeze()],
-                                            dim=2),
+                                            batch[0].squeeze()),
                                         iteration)
                 iteration += 1
 
