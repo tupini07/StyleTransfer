@@ -20,6 +20,9 @@ colored_traceback = "*"
 tensorboardX = "*"
 cython = "*"
 pycocotools = "*"
+requests = "*"
+imageio = "*"
+imageio-ffmpeg = "*"
 
 [requires]
 python_version = "3.7"
