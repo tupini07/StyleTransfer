@@ -661,7 +661,7 @@ class ImageTransformNet(nn.Sequential):
         return average_test_loss
 
 
-    def video_trains(self):
+    def img_net_video_train(self):
         # TODO: parametrize
         epochs = 50
         temporal_weight = 0
@@ -679,7 +679,7 @@ class ImageTransformNet(nn.Sequential):
                     type(optimizer))
         iteration = 0
 
-        video_loader = dataset.VideoDataset(batch_size=3)
+        video_loader = dataset.VideoDataset(batch_size=2)
 
         for epoch in range(epochs):
             LOGGER.info('Starting epoch %d', epoch)
@@ -687,8 +687,10 @@ class ImageTransformNet(nn.Sequential):
             for video_batch in video_loader:
 
                 for batch in dataset.iterate_on_video_batches(video_batch):
-
+                    
                     def closure():
+                        optimizer.zero_grad()
+
                         transformed_image = self(batch)
 
                         # TODO remove

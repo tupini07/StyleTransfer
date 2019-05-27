@@ -35,8 +35,8 @@ def run_fast_style_transfer(style_path, content_path, steps=220, dir=""):
 
     fast_net = network.ImageTransformNet(style_image).to(constants.DEVICE)
 
-    fast_net.static_train()
-    # fast_net.video_trains()
+    # fast_net.static_train()
+    fast_net.img_net_video_train()
 
 
 def analyze_static_style_transfer(style_path, content_path, steps=220, dir="", optimizer=torch.optim.LBFGS):
