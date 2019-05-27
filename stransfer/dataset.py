@@ -177,40 +177,40 @@ class VideoDataset:
             self.batch_size = batch_size
 
         # create video loaders for each video
-        self.video_loaders = []
+        self.video_paths = []
         for vid_name in self.videos:
             vid_path = os.path.join(VIDEO_DATA_PATH, vid_name)
-            self.video_loaders.append(
-                imageio.get_reader(vid_path)
+            self.video_paths.append(
+                vid_path
             )
 
         # separate video loaders into batches
-        self.video_loaders = make_batches(self.video_loaders,
-                                          self.batch_size)
+        self.video_paths = make_batches(self.video_paths,
+                                        self.batch_size)
 
         # Throw away last batch if it is not the perfect batchsize length
-        if len(self.video_loaders[-1]) != self.batch_size:
-            self.video_loaders = self.video_loaders[:-1]
+        if len(self.video_paths[-1]) != self.batch_size:
+            self.video_paths = self.video_paths[:-1]
 
         # vars for iterator management
         self.current_i = 0
 
     def __len__(self):
         # number of batches
-        return len(self.video_loaders)
+        return len(self.video_paths)
 
     def __iter__(self):
         return self
 
     def __next__(self):
         try:
-            result = self.video_loaders[self.current_i]
+            video_paths = self.video_paths[self.current_i]
         except IndexError:
             self.current_i = 0
             raise StopIteration
 
         self.current_i += 1
-        return result
+        return [imageio.get_reader(vp) for vp in video_paths]
 
 
 def iterate_on_video_batches(batch):
@@ -224,7 +224,7 @@ def iterate_on_video_batches(batch):
 
         while True:
             if counter >= max_frames:
-                raise IndexError
+                break
 
             next_data = []
             for tt in batch:
@@ -239,7 +239,7 @@ def iterate_on_video_batches(batch):
     # when one of the videos finishes imageio will
     # throw an IndexError when getting `get_next_data`
     except IndexError:
-        raise StopIteration
+        pass
 
 
 def get_coco_loader(batch_size=4, test_split=0.10, test_limit=None, train_limit=None) -> Tuple[DataLoader, DataLoader]:
