@@ -173,7 +173,7 @@ def train_video():
 
 if __name__ == "__main__":
     colored_traceback.add_hook()
-    # train_video()
+    train_video()
 
-    run_fast_style_transfer(0, 0)
+    # run_fast_style_transfer(0, 0)
     # cli(**{})  # suppress warning

@@ -802,7 +802,7 @@ class VideoTransformNet(ImageTransformNet):
     def video_train(self):
         # TODO: parametrize
         epochs = 50
-        temporal_weight = 0
+        temporal_weight = 0.4
         style_weight = 100_000
         feature_weight = content_weight = 1
 
@@ -842,6 +842,8 @@ class VideoTransformNet(ImageTransformNet):
                         dim=1)
 
                     def closure():
+                        optimizer.zero_grad()
+
                         transformed_image = self(batch_with_old_content)
 
                         # TODO remove
