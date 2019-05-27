@@ -1,5 +1,6 @@
 import copy
 import logging
+import os
 import shutil
 from collections import OrderedDict
 
@@ -502,7 +503,8 @@ class ImageTransformNet(nn.Sequential):
         """
         Trains a fast style transfer network for style transfer on still images.
         """
-        tb_writer = get_tensorboard_writer('runs/fast-image-style-transfer-still-image')
+        tb_writer = get_tensorboard_writer(
+            'runs/fast-image-style-transfer-still-image')
 
         # TODO: parametrize
         epochs = 50
@@ -657,7 +659,8 @@ class ImageTransformNet(nn.Sequential):
         return average_test_loss
 
     def img_net_video_train(self):
-        tb_writer = get_tensorboard_writer('runs/fast-image-style-transfer-video')
+        tb_writer = get_tensorboard_writer(
+            'runs/fast-image-style-transfer-video')
 
         # TODO: parametrize
         epochs = 50
@@ -797,6 +800,9 @@ class VideoTransformNet(ImageTransformNet):
     def video_train(self):
         tb_writer = get_tensorboard_writer('runs/video-style-transfer')
 
+        VIDEO_FOLDER = 'video_samples/'
+        os.makedirs(VIDEO_FOLDER, exist_ok=True)
+
         # TODO: parametrize
         epochs = 50
         temporal_weight = 0.8
@@ -846,7 +852,8 @@ class VideoTransformNet(ImageTransformNet):
                         # TODO remove
                         img_utils.imshow(
                             image_tensor=transformed_image[0].squeeze(),
-                            ground_truth_image=batch[0].squeeze()
+                            ground_truth_image=batch[0].squeeze(),
+                            path=f'{VIDEO_FOLDER}{iteration}_epoch{epoch}.png'
                         )
 
                         style_loss_network(transformed_image,

@@ -12,6 +12,7 @@ events.out.tfevents*
 *.so
 *.mp4
 *.MP4
+*.png
 
 # Distribution / packaging
 .Python
