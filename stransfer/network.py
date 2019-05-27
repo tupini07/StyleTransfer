@@ -690,7 +690,7 @@ class VideoTransformNet(ImageTransformNet):
 
         return (change_in_style/change_in_content) * temporal_weight
 
-    def video_train(self):
+    def video_train(self, train_loader):
         # TODO: parametrize
         epochs = 50
         temporal_weight = 1_000
@@ -709,23 +709,31 @@ class VideoTransformNet(ImageTransformNet):
         iteration = 0
 
         # TODO: set train and test loaders
-        test_loader, train_loader = None
+        # test_loader = train_loader = None
 
-        for epoch in range(epoch):
+        for epoch in range(epochs):
             LOGGER.info('Starting epoch %d', epoch)
 
-            old_styled_images = None
-            old_content_images = None
+            # of shape [content, stylized]
+            old_images = None
 
             for batch in train_loader:
                 batch = batch.squeeze(1)
 
-                if old_content_images is None:
-                    old_content_images = batch
-                    old_styled_images = batch
+                # if we're in new epoch then previous frame is None
+                if old_images is None:
+                    old_images = [batch, batch]
+
+                #? make images available as simple vars
+                old_content_images = old_images[0]
+                old_styled_images = old_images[1]
+
+                # ? Concatenate old stylized to current content
+                batch_with_old_content = torch.cat(
+                    [batch, old_styled_images], dim=1)
 
                 def closure():
-                    transformed_image = self(batch)
+                    transformed_image = self(batch_with_old_content)
 
                     # TODO remove
                     img_utils.imshow(
@@ -735,6 +743,10 @@ class VideoTransformNet(ImageTransformNet):
 
                     style_loss_network(transformed_image,
                                        content_image=batch)
+
+                    style_loss = style_loss_network.get_total_current_style_loss(
+                        weight=style_weight
+                    )
 
                     feature_loss = style_loss_network.get_total_current_feature_loss(
                         weight=feature_weight
@@ -757,8 +769,8 @@ class VideoTransformNet(ImageTransformNet):
                     total_loss = style_loss + content_loss + regularization_loss + temporal_loss
 
                     # * set old content and stylized versions
-                    old_content_images = batch
-                    old_styled_images = transformed_image
+                    old_images[0] = batch
+                    old_images[1] = transformed_image
 
                     total_loss.backward()
 
@@ -783,17 +795,17 @@ class VideoTransformNet(ImageTransformNet):
                 if iteration % 10 == 0:
                     LOGGER.info('Batch Loss: %.8f', total_loss)
 
-                if iteration % 150 == 0:
-                    average_test_loss = self.static_test(
-                        test_loader, style_loss_network)
+                # if iteration % 150 == 0:
+                #     average_test_loss = self.static_test(
+                #         test_loader, style_loss_network)
 
-                    TB_WRITER.add_scalar(
-                        'data/fst_test_loss', average_test_loss, iteration)
+                #     TB_WRITER.add_scalar(
+                #         'data/fst_test_loss', average_test_loss, iteration)
 
                 if iteration % 50 == 0:
 
                     transformed_image = torch.clamp(
-                        self(batch),  # transfor the image
+                        self(batch_with_old_content),  # transfor the image
                         min=0,
                         max=255
                     )[0]

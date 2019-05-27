@@ -6,9 +6,7 @@ import torchvision.transforms as transforms
 from stransfer import constants
 
 
-def image_loader(image_name) -> torch.Tensor:
-    image = Image.open(image_name)
-
+def image_loader_transform(image: Image) -> torch.Tensor:
     min_dimension = min(transforms.ToTensor()(image).shape[1:])
 
     load_transforms = transforms.Compose([
@@ -29,7 +27,6 @@ def image_loader(image_name) -> torch.Tensor:
                 .view(-1, 1, 1))
     img_std = (torch.tensor(constants.IMAGENET_STD)
                .view(-1, 1, 1))
-    
 
     image = image.to(constants.DEVICE, torch.float)
 
@@ -43,6 +40,12 @@ def concat_images(im1, im2, dim=2) -> torch.Tensor:
         im1,
         im2],
         dim=dim)
+
+
+def image_loader(image_name) -> torch.Tensor:
+    image = Image.open(image_name)
+
+    return image_loader_transform(image)
 
 
 def imshow(image_tensor, ground_truth_image=None, path="out.bmp"):
