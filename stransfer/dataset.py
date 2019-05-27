@@ -51,13 +51,16 @@ def download_from_url(url, dst):
 def download_videos_dataset():
 
     videos_to_download = [
-        "https://r2---sn-b5gg-ca9e.googlevideo.com/videoplayback?id=o-AEklCRSCfHCzvOFgc32RXwdiYwHMN2BZiGzchQ0qrgoh&itag=22&source=youtube&requiressl=yes&pl=20&ei=w7XrXLivF4OQ1gKs07TYCg&mime=video%2Fmp4&ratebypass=yes&dur=176.285&lmt=1558107423152746&fvip=4&beids=9466587&c=WEB&txp=5535432&ip=195.201.8.116&ipbits=0&expire=1558972963&sparams=dur,ei,expire,id,ip,ipbits,itag,lmt,mime,mip,mm,mn,ms,mv,pl,ratebypass,requiressl,source&signature=438DA84712ED30AAF322B7D41FD7C2F2EABB962B.2818B9539C365D9D0FB2D272F7CB3184BE89F76D&key=cms1&title=How+People+Walk&title=How+People+Walk&cms_redirect=yes&mip=193.205.210.82&mm=31&mn=sn-b5gg-ca9e&ms=au&mt=1558960747&mv=m",
+        "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+        "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+        "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+        "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"
     ]
 
     os.makedirs(VIDEO_DATA_PATH, exist_ok=True)
 
     name_counter = 0
-    if len(videos_to_download) > len(os.listdir(VIDEO_DATA_PATH)):
+    if len(videos_to_download) != len(os.listdir(VIDEO_DATA_PATH)):
         for url in videos_to_download:
             try:
                 filename = url.split('/')[-1]
@@ -169,7 +172,7 @@ class VideoDataset:
                         f'video set. Will use complete set as a batch of size {len(self.videos)}')
             self.batch_size = len(self.videos)
         else:
-            self.batch_size = self.videos
+            self.batch_size = batch_size
 
         # create video loaders for each video
         self.video_loaders = []
@@ -209,8 +212,18 @@ class VideoDataset:
 
 
 def iterate_on_video_batches(batch):
+    # we limit the maxmium amount of frames
+    # so that we don't really process of the video
+    # we limit to 40 seconds (and suppose that the
+    # videos are 24 FPS)
+    max_frames = 40 * 24
+    counter = 0
     try:
+
         while True:
+            if counter >= max_frames:
+                raise IndexError
+
             next_data = []
             for tt in batch:
                 frame = tt.get_next_data()
@@ -218,8 +231,11 @@ def iterate_on_video_batches(batch):
                 tensor = img_utils.image_loader_transform(image)
                 next_data.append(tensor)
 
+            counter += 1
             yield torch.cat(next_data, dim=0)
 
+    # when one of the videos finishes imageio will
+    # throw an IndexError when getting `get_next_data`
     except IndexError:
         raise StopIteration
 
