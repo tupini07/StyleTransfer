@@ -688,7 +688,7 @@ class VideoTransformNet(ImageTransformNet):
         change_in_style = (current_stylized - old_stylized).norm()
         change_in_content = (current_content - old_content).norm()
 
-        return (change_in_style/change_in_content) * temporal_weight
+        return (change_in_style/(change_in_content + 1)) * temporal_weight
 
     def video_train(self, train_loader):
         # TODO: parametrize
@@ -724,7 +724,7 @@ class VideoTransformNet(ImageTransformNet):
                 if old_images is None:
                     old_images = [batch, batch]
 
-                #? make images available as simple vars
+                # ? make images available as simple vars
                 old_content_images = old_images[0]
                 old_styled_images = old_images[1]
 
@@ -769,8 +769,8 @@ class VideoTransformNet(ImageTransformNet):
                     total_loss = style_loss + content_loss + regularization_loss + temporal_loss
 
                     # * set old content and stylized versions
-                    old_images[0] = batch
-                    old_images[1] = transformed_image
+                    old_images[0] = batch.clone()
+                    old_images[1] = transformed_image.clone()
 
                     total_loss.backward()
 
