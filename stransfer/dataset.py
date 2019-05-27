@@ -4,14 +4,14 @@ import random
 import urllib.request
 from typing import Tuple
 
+import imageio
 import requests
 import torch
 import torchvision
+from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-import imageio
-from PIL import Image
 from stransfer import c_logging, img_utils
 
 LOGGER = c_logging.get_logger()
@@ -48,6 +48,21 @@ def download_from_url(url, dst):
     return file_size
 
 
+def download_list_of_urls(urls):
+    for url in urls:
+        try:
+            filename = url.split('/')[-1]
+            if len(filename) > 20:
+                raise Exception
+        except Exception:
+            filename = f'{name_counter}.mp4'
+            name_counter += 1
+
+        filepath = VIDEO_DATA_PATH + filename
+
+        download_from_url(url, VIDEO_DATA_PATH + filename)
+
+
 def download_videos_dataset():
 
     videos_to_download = [
@@ -61,36 +76,23 @@ def download_videos_dataset():
 
     name_counter = 0
     if len(videos_to_download) != len(os.listdir(VIDEO_DATA_PATH)):
-        for url in videos_to_download:
-            try:
-                filename = url.split('/')[-1]
-                if len(filename) > 20:
-                    raise Exception
-            except Exception:
-                filename = f'{name_counter}.mp4'
-                name_counter += 1
-
-            filepath = VIDEO_DATA_PATH + filename
-
-            download_from_url(url, VIDEO_DATA_PATH + filename)
+        download_list_of_urls(videos_to_download)
 
 
 def download_coco_images():
     json_file_path = os.path.join(BASE_COCO_PATH,
                                   'image_info_test2017.json')
 
-    coco_dataset = torchvision.datasets.coco.CocoCaptions(
-        root=BASE_COCO_PATH,
-        annFile=json_file_path)
+    images_urls = [x['coco_url']
+                   for x in json.load(open(json_file_path, 'r'))['images']]
 
-    # if we haven't downloaded all images then just continue downloading
-    n_images = len(json.load(open(json_file_path, 'r'))['images'])
+    n_images = len(images_urls)
 
-    # try to create images path
     os.makedirs(IMAGE_FOLDER_PATH, exist_ok=True)
 
-    if n_images > len(os.listdir(IMAGE_FOLDER_PATH)):
-        coco_dataset.coco.download(tarDir=IMAGE_FOLDER_PATH)
+    # if we haven't downloaded all images then just continue downloading
+    if len(images_urls) != len(os.listdir(IMAGE_FOLDER_PATH)):
+        download_list_of_urls(images_urls)
 
 
 def make_batches(l, n):
