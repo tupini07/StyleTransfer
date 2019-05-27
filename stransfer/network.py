@@ -799,7 +799,7 @@ class VideoTransformNet(ImageTransformNet):
 
         # TODO: parametrize
         epochs = 50
-        temporal_weight = 0.4
+        temporal_weight = 0.8
         style_weight = 100_000
         feature_weight = content_weight = 1
 
