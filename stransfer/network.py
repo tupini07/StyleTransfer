@@ -503,7 +503,11 @@ class ImageTransformNet(nn.Sequential):
 
         return optimizer(params)
 
-    def train(self):
+    def static_train(self):
+        """
+        Trains a fast style transfer network for style transfer on still images.
+        """
+
         # TODO: parametrize
         epochs = 50
         steps = 30
@@ -546,6 +550,7 @@ class ImageTransformNet(nn.Sequential):
 
                     transformed_image = self(batch)
 
+                    # TODO remove
                     img_utils.imshow(
                         image_tensor=transformed_image[0].squeeze(),
                         ground_truth_image=batch[0].squeeze()
@@ -598,7 +603,7 @@ class ImageTransformNet(nn.Sequential):
                     LOGGER.info('Batch Loss: %.8f', total_loss)
 
                 if iteration % 150 == 0:
-                    average_test_loss = self.test(
+                    average_test_loss = self.static_test(
                         test_loader, loss_network)
 
                     TB_WRITER.add_scalar(
@@ -622,7 +627,11 @@ class ImageTransformNet(nn.Sequential):
                 # after processing the batch, run the gradient update
                 optimizer.step(closure)
 
-    def test(self, test_loader, loss_network):
+    def static_test(self, test_loader, loss_network):
+        """
+        Tests the performance of a fast style transfer network on still images
+        """
+
         # TODO: parametrize
         epochs = 50
         steps = 30
@@ -652,4 +661,149 @@ class ImageTransformNet(nn.Sequential):
         return average_test_loss
 
     def evaluate(self, image):
+        """
+        Returns `image` with the style associated to this network added
+        """
         raise NotImplementedError()
+
+
+class VideoTransformNet(ImageTransformNet):
+
+    def __init__(self, style_image, batch_size=4):
+        super().__init__(style_image, batch_size)
+
+        self[0] = nn.Conv2d(in_channels=6,
+                            out_channels=32,
+                            kernel_size=9,
+                            stride=1,
+                            padding=9//2,
+                            padding_mode='reflection')
+
+    def get_temporal_loss(self, old_content, old_stylized,
+                          current_content, current_stylized,
+                          temporal_weight=1):
+
+        # ? see https://github.com/tupini07/StyleTransfer/issues/5
+
+        change_in_style = (current_stylized - old_stylized).norm()
+        change_in_content = (current_content - old_content).norm()
+
+        return (change_in_style/change_in_content) * temporal_weight
+
+    def video_train(self):
+        # TODO: parametrize
+        epochs = 50
+        temporal_weight = 1_000
+        style_weight = 100_000
+        feature_weight = content_weight = 1
+
+        # TODO: try adding the following so that grads are not computed
+        # with torch.no_grad():
+        style_loss_network = StyleNetwork(self.style_image,
+                                          torch.rand([1, 3, 256, 256]).to(
+                                              constants.DEVICE))
+
+        optimizer = self.get_optimizer(optimizer=optim.Adam)
+        LOGGER.info('Training video network with "%s" optimizer',
+                    type(optimizer))
+        iteration = 0
+
+        # TODO: set train and test loaders
+        test_loader, train_loader = None
+
+        for epoch in range(epoch):
+            LOGGER.info('Starting epoch %d', epoch)
+
+            old_styled_images = None
+            old_content_images = None
+
+            for batch in train_loader:
+                batch = batch.squeeze(1)
+
+                if old_content_images is None:
+                    old_content_images = batch
+                    old_styled_images = batch
+
+                def closure():
+                    transformed_image = self(batch)
+
+                    # TODO remove
+                    img_utils.imshow(
+                        image_tensor=transformed_image[0].squeeze(),
+                        ground_truth_image=batch[0].squeeze()
+                    )
+
+                    style_loss_network(transformed_image,
+                                       content_image=batch)
+
+                    feature_loss = style_loss_network.get_total_current_feature_loss(
+                        weight=feature_weight
+                    )
+                    content_loss = style_loss_network.get_total_current_content_loss(
+                        weight=content_weight
+                    )
+                    regularization_loss = self.get_total_variation_regularization_loss(
+                        transformed_image
+                    )
+
+                    temporal_loss = self.get_temporal_loss(
+                        old_content_images,
+                        old_styled_images,
+                        batch,
+                        transformed_image
+                    )
+
+                    # * agregate losses
+                    total_loss = style_loss + content_loss + regularization_loss + temporal_loss
+
+                    # * set old content and stylized versions
+                    old_content_images = batch
+                    old_styled_images = transformed_image
+
+                    total_loss.backward()
+
+                    # * debug messages
+                    LOGGER.debug('Max of each channel: %s', [
+                        x.max().item() for x in transformed_image[0].squeeze()])
+                    LOGGER.debug('Min of each channel: %s', [
+                        x.min().item() for x in transformed_image[0].squeeze()])
+                    LOGGER.debug('Sum of each channel: %s', [
+                        x.sum().item() for x in transformed_image[0].squeeze()])
+                    LOGGER.debug('Closure loss: %.8f', total_loss)
+
+                    return total_loss
+
+                total_loss = closure()
+
+                TB_WRITER.add_scalar(
+                    'data/fst_train_loss',
+                    total_loss,
+                    iteration)
+
+                if iteration % 10 == 0:
+                    LOGGER.info('Batch Loss: %.8f', total_loss)
+
+                if iteration % 150 == 0:
+                    average_test_loss = self.static_test(
+                        test_loader, style_loss_network)
+
+                    TB_WRITER.add_scalar(
+                        'data/fst_test_loss', average_test_loss, iteration)
+
+                if iteration % 50 == 0:
+
+                    transformed_image = torch.clamp(
+                        self(batch),  # transfor the image
+                        min=0,
+                        max=255
+                    )[0]
+
+                    TB_WRITER.add_image('data/fst_images',
+                                        img_utils.concat_images(
+                                            transformed_image.squeeze(),
+                                            batch[0].squeeze()),
+                                        iteration)
+                iteration += 1
+
+                # after processing the batch, run the gradient update
+                optimizer.step(closure)

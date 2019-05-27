@@ -10,6 +10,8 @@ events.out.tfevents*
 *.7z
 # C extensions
 *.so
+*.mp4
+*.MP4
 
 # Distribution / packaging
 .Python
