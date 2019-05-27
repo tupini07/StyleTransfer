@@ -49,6 +49,10 @@ def image_loader(image_name) -> torch.Tensor:
 
 
 def imshow(image_tensor, ground_truth_image=None, path="out.bmp"):
+    # concat with ground truth if specified
+    if ground_truth_image is not None:
+        image_tensor = concat_images(image_tensor, ground_truth_image)
+
     # denormalize image
     img_mean = (torch.tensor(constants.IMAGENET_MEAN)
                 .view(-1, 1, 1))
@@ -65,10 +69,6 @@ def imshow(image_tensor, ground_truth_image=None, path="out.bmp"):
     )
 
     image = image.squeeze(0)      # remove the fake batch dimension, if any
-
-    # concat with ground truth if specified
-    if ground_truth_image is not None:
-        image = concat_images(image, ground_truth_image)
 
     # concat with ground truth if any
     tpil = transforms.ToPILImage()
