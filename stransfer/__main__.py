@@ -155,9 +155,24 @@ def cli(style_image, content, video, no_fast, start_from_random_noise, steps, op
     print(123123)
 
 
+def train_video():
+    # TODO remove these 2
+    content_path = "data/dancing.jpg"
+    style_path = "data/picasso.jpg"
+
+    # TODO move to parameters
+    style_weight = 1000000
+    content_weight = 1
+
+    style_image = img_utils.image_loader(style_path)
+    content_image = img_utils.image_loader(content_path)
+
+    net = network.VideoTransformNet(style_image)
+    net.video_train()
+
 if __name__ == "__main__":
     colored_traceback.add_hook()
+    train_video()
 
-
-    run_fast_style_transfer(0, 0)
+    # run_fast_style_transfer(0, 0)
     # cli(**{})  # suppress warning
