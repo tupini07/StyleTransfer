@@ -15,16 +15,11 @@ from stransfer import c_logging, constants, dataset, img_utils
 
 LOGGER = c_logging.get_logger()
 
-TENSORBOARD_PATH = 'runs/optimize-after-real-batch_feature-style-loss'
 
-shutil.rmtree(TENSORBOARD_PATH, ignore_errors=True)
+def get_tensorboard_writer(path):
+    shutil.rmtree(path, ignore_errors=True)
+    return SummaryWriter(path)
 
-TB_WRITER = SummaryWriter(TENSORBOARD_PATH)
-TB_WRITER.add_text('note', ('For this run, the loss is calculated for a real batch'
-                            'and then the optimization step '
-                            'is made. Images in batch are only seen once '
-                            '(only one "step" is made for each image. '
-                            'The new feature+style loss is used.'), 0)
 
 _VGG = torchvision.models.vgg19(pretrained=True)
 _VGG = (_VGG
@@ -507,6 +502,7 @@ class ImageTransformNet(nn.Sequential):
         """
         Trains a fast style transfer network for style transfer on still images.
         """
+        tb_writer = get_tensorboard_writer('runs/fast-image-style-transfer-still-image')
 
         # TODO: parametrize
         epochs = 50
@@ -594,7 +590,7 @@ class ImageTransformNet(nn.Sequential):
 
                 total_loss = closure()
 
-                TB_WRITER.add_scalar(
+                tb_writer.add_scalar(
                     'data/fst_train_loss',
                     total_loss,
                     iteration)
@@ -606,7 +602,7 @@ class ImageTransformNet(nn.Sequential):
                     average_test_loss = self.static_test(
                         test_loader, loss_network)
 
-                    TB_WRITER.add_scalar(
+                    tb_writer.add_scalar(
                         'data/fst_test_loss', average_test_loss, iteration)
 
                 if iteration % 50 == 0:
@@ -617,7 +613,7 @@ class ImageTransformNet(nn.Sequential):
                         max=255
                     )[0]
 
-                    TB_WRITER.add_image('data/fst_images',
+                    tb_writer.add_image('data/fst_images',
                                         img_utils.concat_images(
                                             transformed_image.squeeze(),
                                             batch[0].squeeze()),
@@ -660,8 +656,9 @@ class ImageTransformNet(nn.Sequential):
 
         return average_test_loss
 
-
     def img_net_video_train(self):
+        tb_writer = get_tensorboard_writer('runs/fast-image-style-transfer-video')
+
         # TODO: parametrize
         epochs = 50
         temporal_weight = 0
@@ -687,7 +684,7 @@ class ImageTransformNet(nn.Sequential):
             for video_batch in video_loader:
 
                 for batch in dataset.iterate_on_video_batches(video_batch):
-                    
+
                     def closure():
                         optimizer.zero_grad()
 
@@ -716,9 +713,8 @@ class ImageTransformNet(nn.Sequential):
                             transformed_image
                         )
 
-
                         # * agregate losses
-                        total_loss = style_loss + content_loss + regularization_loss 
+                        total_loss = style_loss + content_loss + regularization_loss
 
                         total_loss.backward()
 
@@ -735,7 +731,7 @@ class ImageTransformNet(nn.Sequential):
 
                     total_loss = closure()
 
-                    TB_WRITER.add_scalar(
+                    tb_writer.add_scalar(
                         'data/fst_train_loss',
                         total_loss,
                         iteration)
@@ -747,7 +743,7 @@ class ImageTransformNet(nn.Sequential):
                     #     average_test_loss = self.static_test(
                     #         test_loader, style_loss_network)
 
-                    #     TB_WRITER.add_scalar(
+                    #     tb_writer.add_scalar(
                     #         'data/fst_test_loss', average_test_loss, iteration)
 
                     # if iteration % 50 == 0:
@@ -758,7 +754,7 @@ class ImageTransformNet(nn.Sequential):
                     #         max=255
                     #     )[0]
 
-                    #     TB_WRITER.add_image('data/fst_images',
+                    #     tb_writer.add_image('data/fst_images',
                     #                         img_utils.concat_images(
                     #                             transformed_image.squeeze(),
                     #                             batch[0].squeeze()),
@@ -767,7 +763,6 @@ class ImageTransformNet(nn.Sequential):
 
                     # after processing the batch, run the gradient update
                     optimizer.step(closure)
-
 
     def evaluate(self, image):
         """
@@ -800,6 +795,8 @@ class VideoTransformNet(ImageTransformNet):
         return (change_in_style/(change_in_content + 1)) * temporal_weight
 
     def video_train(self):
+        tb_writer = get_tensorboard_writer('runs/video-style-transfer')
+
         # TODO: parametrize
         epochs = 50
         temporal_weight = 0.4
@@ -899,7 +896,7 @@ class VideoTransformNet(ImageTransformNet):
 
                     total_loss = closure()
 
-                    TB_WRITER.add_scalar(
+                    tb_writer.add_scalar(
                         'data/fst_train_loss',
                         total_loss,
                         iteration)
@@ -911,7 +908,7 @@ class VideoTransformNet(ImageTransformNet):
                     #     average_test_loss = self.static_test(
                     #         test_loader, style_loss_network)
 
-                    #     TB_WRITER.add_scalar(
+                    #     tb_writer.add_scalar(
                     #         'data/fst_test_loss', average_test_loss, iteration)
 
                     if iteration % 50 == 0:
@@ -922,7 +919,7 @@ class VideoTransformNet(ImageTransformNet):
                             max=255
                         )[0]
 
-                        TB_WRITER.add_image('data/fst_images',
+                        tb_writer.add_image('data/fst_images',
                                             img_utils.concat_images(
                                                 transformed_image.squeeze(),
                                                 batch[0].squeeze()),
