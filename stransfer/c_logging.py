@@ -1,6 +1,9 @@
 import logging
+import os
 
 import tqdm
+
+from stransfer import constants
 
 LOGGER = logging.getLogger('StyleTransfer')
 LOGGER.setLevel(logging.DEBUG)
@@ -38,7 +41,9 @@ class TqdmLoggingHandler (logging.StreamHandler):
 tqmd_handler = TqdmLoggingHandler()
 tqmd_handler.setFormatter(LOGGER_FORMATTER)
 
-file_handler = logging.FileHandler('runs/runtime.log', mode='w+')
+
+os.makedirs(constants.RUNS_PATH, exist_ok=True)
+file_handler = logging.FileHandler(constants.LOG_PATH, mode='w+')
 file_handler.setFormatter(LOGGER_FORMATTER)
 
 LOGGER.addHandler(tqmd_handler)

@@ -140,7 +140,10 @@ class StyleNetwork(nn.Module):
         self.style_losses = []
         self.feature_losses = []
 
-        vgg = copy.deepcopy(_VGG)
+        # TODO: It is safer to do a deepcopy. But in the meantime
+        # we don't want to occupy extra memory
+        # vgg = copy.deepcopy(_VGG)
+        vgg = _VGG
 
         self.net_pieces = [
             nn.Sequential()
@@ -499,7 +502,7 @@ class ImageTransformNet(nn.Sequential):
 
         return optimizer(params)
 
-    def static_train(self):
+    def static_train(self, style_name='nsp'):
         """
         Trains a fast style transfer network for style transfer on still images.
         """
@@ -624,6 +627,11 @@ class ImageTransformNet(nn.Sequential):
 
                 # after processing the batch, run the gradient update
                 optimizer.step(closure)
+
+            torch.save(
+                self.state_dict(),
+                f'data/models/fast_st_{style_name}_epoch{epoch}.pth'
+            )
 
     def static_test(self, test_loader, loss_network):
         """
@@ -801,6 +809,7 @@ class VideoTransformNet(ImageTransformNet):
         tb_writer = get_tensorboard_writer('runs/video-style-transfer')
 
         VIDEO_FOLDER = 'video_samples/'
+        shutil.rmtree(VIDEO_FOLDER, ignore_errors=True)
         os.makedirs(VIDEO_FOLDER, exist_ok=True)
 
         # TODO: parametrize
