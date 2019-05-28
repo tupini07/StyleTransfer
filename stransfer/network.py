@@ -527,15 +527,15 @@ class ImageTransformNet(nn.Sequential):
         LOGGER.info('Training network with "%s" optimizer', type(optimizer))
 
         iteration = 0
-
+        
         test_loader, train_loader = dataset.get_coco_loader(test_split=0.10,
                                                             test_limit=20,
                                                             batch_size=self.batch_size)
         for epoch in range(epochs):
 
             LOGGER.info('Starting epoch %d', epoch)
-
-            for batch in train_loader:
+            
+            for batch in tqdm(train_loader):
                 batch = batch.squeeze(1)
 
                 def closure():
@@ -600,7 +600,7 @@ class ImageTransformNet(nn.Sequential):
                     total_loss,
                     iteration)
 
-                if iteration % 10 == 0:
+                if iteration % 20 == 0:
                     LOGGER.info('Batch Loss: %.8f', total_loss)
 
                 if iteration % 150 == 0:
