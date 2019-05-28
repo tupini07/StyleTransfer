@@ -31,7 +31,6 @@ def run_fast_style_transfer(style_path, content_path, steps=220, dir=""):
     style_path = "data/styles/picasso.jpg"
 
     style_image = img_utils.image_loader(style_path)
-    content_images = [img_utils.image_loader(content_path)]
 
     fast_net = network.ImageTransformNet(style_image).to(constants.DEVICE)
 

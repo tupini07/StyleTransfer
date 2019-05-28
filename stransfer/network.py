@@ -142,8 +142,8 @@ class StyleNetwork(nn.Module):
 
         # TODO: It is safer to do a deepcopy. But in the meantime
         # we don't want to occupy extra memory
-        # vgg = copy.deepcopy(_VGG)
-        vgg = _VGG
+        vgg = copy.deepcopy(_VGG)
+        # vgg = _VGG
 
         self.net_pieces = [
             nn.Sequential()
@@ -826,7 +826,7 @@ class VideoTransformNet(ImageTransformNet):
 
         return (change_in_style/(change_in_content + 1)) * temporal_weight
 
-    def video_train(self):
+    def video_train(self, style_name='nsp'):
         tb_writer = get_tensorboard_writer('runs/video-style-transfer')
 
         VIDEO_FOLDER = 'video_samples/'
@@ -965,3 +965,8 @@ class VideoTransformNet(ImageTransformNet):
 
                     # after processing the batch, run the gradient update
                     optimizer.step(closure)
+
+            torch.save(
+                self.state_dict(),
+                f'data/models/video_st_{style_name}_epoch{epoch}.pth'
+            )
