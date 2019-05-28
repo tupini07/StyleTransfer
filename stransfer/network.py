@@ -551,11 +551,11 @@ class ImageTransformNet(nn.Sequential):
 
                     transformed_image = self(batch)
 
-                    # TODO remove
-                    img_utils.imshow(
-                        image_tensor=transformed_image[0].squeeze(),
-                        ground_truth_image=batch[0].squeeze()
-                    )
+                    # # TODO remove
+                    # img_utils.imshow(
+                    #     image_tensor=transformed_image[0].squeeze(),
+                    #     ground_truth_image=batch[0].squeeze()
+                    # )
 
                     # evaluate how good the transformation is
                     loss_network(transformed_image,
@@ -593,14 +593,15 @@ class ImageTransformNet(nn.Sequential):
 
                     return total_loss
 
-                total_loss = closure()
-
-                tb_writer.add_scalar(
-                    'data/fst_train_loss',
-                    total_loss,
-                    iteration)
 
                 if iteration % 20 == 0:
+                    total_loss = closure()
+
+                    tb_writer.add_scalar(
+                        'data/fst_train_loss',
+                        total_loss,
+                        iteration)
+                        
                     LOGGER.info('Batch Loss: %.8f', total_loss)
 
                 if iteration % 150 == 0:
