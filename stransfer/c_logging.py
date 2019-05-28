@@ -6,7 +6,7 @@ import tqdm
 from stransfer import constants
 
 LOGGER = logging.getLogger('StyleTransfer')
-LOGGER.setLevel(logging.DEBUG)
+LOGGER.setLevel(logging.INFO)
 LOGGER.handlers = []
 
 LOGGER_FORMATTER = logging.Formatter(
