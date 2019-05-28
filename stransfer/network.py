@@ -701,11 +701,11 @@ class ImageTransformNet(nn.Sequential):
 
                         transformed_image = self(batch)
 
-                        # TODO remove
-                        img_utils.imshow(
-                            image_tensor=transformed_image[0].squeeze(),
-                            ground_truth_image=batch[0].squeeze()
-                        )
+                        # # TODO remove
+                        # img_utils.imshow(
+                        #     image_tensor=transformed_image[0].squeeze(),
+                        #     ground_truth_image=batch[0].squeeze()
+                        # )
 
                         style_loss_network(transformed_image,
                                            content_image=batch)
