@@ -11,7 +11,7 @@ from stransfer import c_logging, constants, img_utils, network
 LOGGER = logging.getLogger(__name__)
 
 
-def run_static_style_transfer(style_path, content_path, steps=220, dir=""):
+def run_static_style_transfer(style_path, content_path, steps=220, outdir=""):
 
     # TODO remove these 2
     content_path = "data/dancing.jpg"
@@ -25,7 +25,7 @@ def run_static_style_transfer(style_path, content_path, steps=220, dir=""):
     return st_net.train(style_image, content_image)
 
 
-def run_fast_style_transfer(style_path, content_path, steps=220, dir=""):
+def run_fast_style_transfer(style_path, content_path, steps=220, outdir=""):
 
     content_path = "data/dancing.jpg"
     style_path = "data/styles/picasso.jpg"
@@ -38,7 +38,7 @@ def run_fast_style_transfer(style_path, content_path, steps=220, dir=""):
     # fast_net.img_net_video_train()
 
 
-def analyze_static_style_transfer(style_path, content_path, steps=220, dir="", optimizer=torch.optim.LBFGS):
+def analyze_static_style_transfer(style_path, content_path, steps=220, outdir="", optimizer=torch.optim.LBFGS):
 
     # TODO remove these 2
     content_path = "data/dancing.jpg"

@@ -38,15 +38,15 @@ class TqdmLoggingHandler (logging.StreamHandler):
             self.handleError(record)
 
 
-tqmd_handler = TqdmLoggingHandler()
-tqmd_handler.setFormatter(LOGGER_FORMATTER)
+tqdm_handler = TqdmLoggingHandler()
+tqdm_handler.setFormatter(LOGGER_FORMATTER)
 
 
 os.makedirs(constants.RUNS_PATH, exist_ok=True)
 file_handler = logging.FileHandler(constants.LOG_PATH, mode='w+')
 file_handler.setFormatter(LOGGER_FORMATTER)
 
-LOGGER.addHandler(tqmd_handler)
+LOGGER.addHandler(tqdm_handler)
 LOGGER.addHandler(file_handler)
 
 
