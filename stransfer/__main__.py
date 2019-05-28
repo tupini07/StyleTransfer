@@ -15,7 +15,7 @@ def run_static_style_transfer(style_path, content_path, steps=220, dir=""):
 
     # TODO remove these 2
     content_path = "data/dancing.jpg"
-    style_path = "data/picasso.jpg"
+    style_path = "data/styles/picasso.jpg"
 
     style_image = img_utils.image_loader(style_path)
     content_image = img_utils.image_loader(content_path)
@@ -28,7 +28,7 @@ def run_static_style_transfer(style_path, content_path, steps=220, dir=""):
 def run_fast_style_transfer(style_path, content_path, steps=220, dir=""):
 
     content_path = "data/dancing.jpg"
-    style_path = "data/picasso.jpg"
+    style_path = "data/styles/picasso.jpg"
 
     style_image = img_utils.image_loader(style_path)
     content_images = [img_utils.image_loader(content_path)]
@@ -43,7 +43,7 @@ def analyze_static_style_transfer(style_path, content_path, steps=220, dir="", o
 
     # TODO remove these 2
     content_path = "data/dancing.jpg"
-    style_path = "data/picasso.jpg"
+    style_path = "data/styles/picasso.jpg"
 
     # TODO move to parameters
     style_weight = 1000000
@@ -159,7 +159,7 @@ def cli(style_image, content, video, no_fast, start_from_random_noise, steps, op
 def train_video():
     # TODO remove these 2
     content_path = "data/dancing.jpg"
-    style_path = "data/picasso.jpg"
+    style_path = "data/styles/picasso.jpg"
 
     # TODO move to parameters
     style_weight = 1000000

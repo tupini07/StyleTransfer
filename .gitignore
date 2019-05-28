@@ -4,7 +4,6 @@ __pycache__/
 *$py.class
 .vscode
 *.bmp
-*.jpg
 runs/*
 events.out.tfevents*
 *.7z
@@ -13,6 +12,8 @@ events.out.tfevents*
 *.mp4
 *.MP4
 *.png
+data/coco_dataset/images
+data/coco_dataset/images/*
 
 # Distribution / packaging
 .Python
