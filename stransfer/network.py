@@ -784,7 +784,7 @@ class ImageTransformNet(nn.Sequential):
 
 class VideoTransformNet(ImageTransformNet):
 
-    def __init__(self, style_image, batch_size=2):
+    def __init__(self, style_image, batch_size=2, fast_transfer_dict=None):
         super().__init__(style_image, batch_size)
 
         self[0] = nn.Conv2d(in_channels=6,
@@ -793,6 +793,27 @@ class VideoTransformNet(ImageTransformNet):
                             stride=1,
                             padding=9//2,
                             padding_mode='reflection')
+
+        # since this video net is exactly the same as the ImageTransformNet
+        # 'fast transfer' then we can reuse it's backup weights, already trained
+        # on imagenet, for this task.
+        if fast_transfer_dict is not None:
+            # if 'fast_transfer_dict' is a string then we take it to be the path
+            # to a dump of the weights. So we load it.
+            if isinstance(fast_transfer_dict, str):
+                fast_transfer_dict = torch.load(fast_transfer_dict)
+
+            # but first we have to remove the 'weight' and 'bias' for the first layer,
+            # since this is the one we will be replacing in this 'VideoTransformNet'
+            del fast_transfer_dict['0.weight']
+            del fast_transfer_dict['0.bias']
+
+            # update video net state dict so that we ensure we have
+            # the correct weight/biases for the first layer
+            m_sd = self.state_dict().copy()
+            m_sd.update(fast_transfer_dict)
+
+            self.load_state_dict(m_sd)
 
     def get_temporal_loss(self, old_content, old_stylized,
                           current_content, current_stylized,
