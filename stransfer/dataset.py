@@ -218,7 +218,7 @@ def iterate_on_video_batches(batch):
     # so that we don't really process of the video
     # we limit to 40 seconds (and suppose that the
     # videos are 24 FPS)
-    max_frames = 40 * 24
+    max_frames = 90 * 24
     counter = 0
     try:
 
