@@ -534,6 +534,15 @@ class ImageTransformNet(nn.Sequential):
         for epoch in range(epochs):
 
             LOGGER.info('Starting epoch %d', epoch)
+            epoch_checkpoint_name = f'data/models/fast_st_{style_name}_epoch{epoch}.pth'
+
+            # if the checkpoint file for this epoch exists then we
+            # just load it and go over to the next epoch
+            if os.path.isfile(epoch_checkpoint_name):
+                self.load_state_dict(
+                    torch.load(epoch_checkpoint_name)
+                )
+                continue
 
             for batch in tqdm(train_loader):
                 batch = batch.squeeze(1)
@@ -630,7 +639,7 @@ class ImageTransformNet(nn.Sequential):
 
             torch.save(
                 self.state_dict(),
-                f'data/models/fast_st_{style_name}_epoch{epoch}.pth'
+                epoch_checkpoint_name
             )
 
     def static_test(self, test_loader, loss_network):
