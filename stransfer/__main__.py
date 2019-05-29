@@ -72,11 +72,12 @@ def train_video():
     content_image = img_utils.image_loader(content_path)
 
     net = network.VideoTransformNet(style_image)
-    net.video_train()
+    net.video_train("picasso")
 
 if __name__ == "__main__":
     colored_traceback.add_hook()
-    run_gatys_style_transfer(0,0)
-    # train_video()
+    # run_gatys_style_transfer(0,0)
+
+    train_video()
     # run_fast_style_transfer(0, 0)
     # cli(**{})  # suppress warning

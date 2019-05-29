@@ -856,7 +856,8 @@ class VideoTransformNet(ImageTransformNet):
                             'data/fst_train_loss',
                             total_loss,
                             iteration)
-                        LOGGER.info('Batch Loss: %.8f', total_loss)
+                        LOGGER.info('Epoch: %d\tBatch Loss: %.4f',
+                                    epoch, total_loss)
 
                     # if iteration % 150 == 0:
                     #     average_test_loss = self.static_test(
