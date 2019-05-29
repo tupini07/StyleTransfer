@@ -666,12 +666,6 @@ class ImageTransformNet(nn.Sequential):
 
         return average_test_loss
 
-    def evaluate(self, image):
-        """
-        Returns `image` with the style associated to this network added
-        """
-        raise NotImplementedError()
-
 
 class VideoTransformNet(ImageTransformNet):
 
