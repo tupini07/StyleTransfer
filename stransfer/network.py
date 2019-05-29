@@ -264,7 +264,7 @@ class StyleNetwork(nn.Module):
 
         return optimizer
 
-    def train(self, style_image, content_image, steps=220):
+    def train_gatys(self, style_image, content_image, steps=550):
         """
         To train on only one content and style images
         """
@@ -278,25 +278,18 @@ class StyleNetwork(nn.Module):
         style_weight = 1000000
         content_weight = 1
 
-        # clamp content image before creating network
-        content_image.data.clamp_(0, 1)
-
-        # start from content image
-        input_image = content_image.clone()
-
         # start from content image
         input_image = content_image.clone()
 
         # or start from random image
-        # input_image = torch.randn(content_image.data.size(), device=constants.DEVICE)
+        # input_image = torch.randn(
+        #     content_image.data.size(), device=constants.DEVICE)
 
-        optimizer = self.get_content_optimizer(input_image)
+        optimizer = self.get_content_optimizer(input_image, optt=optim.LBFGS)
 
         for step in tqdm(range(steps)):
 
             def closure():
-                # clamp content image in place each step
-                input_image.data.clamp_(0, 1)
 
                 optimizer.zero_grad()
 
@@ -312,13 +305,10 @@ class StyleNetwork(nn.Module):
                 total_loss = style_loss + content_loss
                 total_loss.backward()
 
-                print(total_loss)
+                LOGGER.info('Loss: %s', total_loss)
                 return total_loss
 
             optimizer.step(closure)
-
-        # TODO check if this is necessary
-        input_image.data.clamp_(0, 1)
 
         return input_image
 
