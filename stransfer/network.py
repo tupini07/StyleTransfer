@@ -666,115 +666,6 @@ class ImageTransformNet(nn.Sequential):
 
         return average_test_loss
 
-    def img_net_video_train(self):
-        tb_writer = get_tensorboard_writer(
-            'runs/fast-image-style-transfer-video')
-
-        # TODO: parametrize
-        epochs = 50
-        temporal_weight = 0
-        style_weight = 100_000
-        feature_weight = content_weight = 1
-
-        # TODO: try adding the following so that grads are not computed
-        # with torch.no_grad():
-        style_loss_network = StyleNetwork(self.style_image,
-                                          torch.rand([1, 3, 256, 256]).to(
-                                              constants.DEVICE))
-
-        optimizer = self.get_optimizer(optimizer=optim.Adam)
-        LOGGER.info('Training video network with "%s" optimizer',
-                    type(optimizer))
-        iteration = 0
-
-        video_loader = dataset.VideoDataset(batch_size=2)
-
-        for epoch in range(epochs):
-            LOGGER.info('Starting epoch %d', epoch)
-
-            for video_batch in video_loader:
-
-                for batch in dataset.iterate_on_video_batches(video_batch):
-
-                    def closure():
-                        optimizer.zero_grad()
-
-                        transformed_image = self(batch)
-
-                        # # TODO remove
-                        # img_utils.imshow(
-                        #     image_tensor=transformed_image[0].squeeze(),
-                        #     ground_truth_image=batch[0].squeeze()
-                        # )
-
-                        style_loss_network(transformed_image,
-                                           content_image=batch)
-
-                        style_loss = style_loss_network.get_total_current_style_loss(
-                            weight=style_weight
-                        )
-
-                        feature_loss = style_loss_network.get_total_current_feature_loss(
-                            weight=feature_weight
-                        )
-                        content_loss = style_loss_network.get_total_current_content_loss(
-                            weight=content_weight
-                        )
-                        regularization_loss = self.get_total_variation_regularization_loss(
-                            transformed_image
-                        )
-
-                        # * agregate losses
-                        total_loss = style_loss + content_loss + regularization_loss
-
-                        total_loss.backward()
-
-                        # * debug messages
-                        LOGGER.debug('Max of each channel: %s', [
-                            x.max().item() for x in transformed_image[0].squeeze()])
-                        LOGGER.debug('Min of each channel: %s', [
-                            x.min().item() for x in transformed_image[0].squeeze()])
-                        LOGGER.debug('Sum of each channel: %s', [
-                            x.sum().item() for x in transformed_image[0].squeeze()])
-                        LOGGER.debug('Closure loss: %.8f', total_loss)
-
-                        return total_loss
-
-                    total_loss = closure()
-
-                    tb_writer.add_scalar(
-                        'data/fst_train_loss',
-                        total_loss,
-                        iteration)
-
-                    if iteration % 10 == 0:
-                        LOGGER.info('Batch Loss: %.8f', total_loss)
-
-                    # if iteration % 150 == 0:
-                    #     average_test_loss = self.static_test(
-                    #         test_loader, style_loss_network)
-
-                    #     tb_writer.add_scalar(
-                    #         'data/fst_test_loss', average_test_loss, iteration)
-
-                    # if iteration % 50 == 0:
-
-                    #     transformed_image = torch.clamp(
-                    #         self(batch_with_old_content),  # transfor the image
-                    #         min=0,
-                    #         max=255
-                    #     )[0]
-
-                    #     tb_writer.add_image('data/fst_images',
-                    #                         img_utils.concat_images(
-                    #                             transformed_image.squeeze(),
-                    #                             batch[0].squeeze()),
-                    #                         iteration)
-                    iteration += 1
-
-                    # after processing the batch, run the gradient update
-                    optimizer.step(closure)
-
     def evaluate(self, image):
         """
         Returns `image` with the style associated to this network added
@@ -834,7 +725,8 @@ class VideoTransformNet(ImageTransformNet):
         return (change_in_style/(change_in_content + 1)) * temporal_weight
 
     def video_train(self, style_name='nsp'):
-        tb_writer = get_tensorboard_writer(f'runs/video-style-transfer_{style_name}')
+        tb_writer = get_tensorboard_writer(
+            f'runs/video-style-transfer_{style_name}')
 
         VIDEO_FOLDER = f'video_samples_{style_name}/'
         shutil.rmtree(VIDEO_FOLDER, ignore_errors=True)
@@ -863,7 +755,8 @@ class VideoTransformNet(ImageTransformNet):
             # we freeze the 'external_weights' during the first epoch
             # if these are present
             if epoch == 0 and self.has_external_weights:
-                LOGGER.info('Freezing weights imported from fast transfer network for the first epoch')
+                LOGGER.info(
+                    'Freezing weights imported from fast transfer network for the first epoch')
                 for name, param in self.named_parameters():
                     # all layers which are not the first one
                     if not name.startswith('0.'):
@@ -952,7 +845,6 @@ class VideoTransformNet(ImageTransformNet):
                         LOGGER.debug('Closure loss: %.8f', total_loss)
 
                         return total_loss
-
 
                     if iteration % 20 == 0:
                         total_loss = closure()
