@@ -507,7 +507,7 @@ class ImageTransformNet(nn.Sequential):
         Trains a fast style transfer network for style transfer on still images.
         """
         tb_writer = get_tensorboard_writer(
-            'runs/fast-image-style-transfer-still-image')
+            f'runs/fast-image-style-transfer-still-image_{style_name}')
 
         # TODO: parametrize
         epochs = 50
@@ -527,14 +527,14 @@ class ImageTransformNet(nn.Sequential):
         LOGGER.info('Training network with "%s" optimizer', type(optimizer))
 
         iteration = 0
-        
+
         test_loader, train_loader = dataset.get_coco_loader(test_split=0.10,
                                                             test_limit=20,
                                                             batch_size=self.batch_size)
         for epoch in range(epochs):
 
             LOGGER.info('Starting epoch %d', epoch)
-            
+
             for batch in tqdm(train_loader):
                 batch = batch.squeeze(1)
 
@@ -593,7 +593,6 @@ class ImageTransformNet(nn.Sequential):
 
                     return total_loss
 
-
                 if iteration % 20 == 0:
                     total_loss = closure()
 
@@ -601,7 +600,7 @@ class ImageTransformNet(nn.Sequential):
                         'data/fst_train_loss',
                         total_loss,
                         iteration)
-                        
+
                     LOGGER.info('Batch Loss: %.8f', total_loss)
 
                 if iteration % 150 == 0:
@@ -785,7 +784,7 @@ class ImageTransformNet(nn.Sequential):
 
 class VideoTransformNet(ImageTransformNet):
 
-    def __init__(self, style_image, batch_size=2, fast_transfer_dict=None):
+    def __init__(self, style_image, batch_size=4, fast_transfer_dict=None):
         super().__init__(style_image, batch_size)
 
         self[0] = nn.Conv2d(in_channels=6,
@@ -814,7 +813,14 @@ class VideoTransformNet(ImageTransformNet):
             m_sd = self.state_dict().copy()
             m_sd.update(fast_transfer_dict)
 
+            # finally load weights into network
             self.load_state_dict(m_sd)
+
+            # flag to use when training, to know if we've loaded
+            # external weights or not
+            self.has_external_weights = True
+        else:
+            self.has_external_weights = False
 
     def get_temporal_loss(self, old_content, old_stylized,
                           current_content, current_stylized,
@@ -828,7 +834,7 @@ class VideoTransformNet(ImageTransformNet):
         return (change_in_style/(change_in_content + 1)) * temporal_weight
 
     def video_train(self, style_name='nsp'):
-        tb_writer = get_tensorboard_writer('runs/video-style-transfer')
+        tb_writer = get_tensorboard_writer(f'runs/video-style-transfer_{style_name}')
 
         VIDEO_FOLDER = 'video_samples/'
         shutil.rmtree(VIDEO_FOLDER, ignore_errors=True)
@@ -854,6 +860,21 @@ class VideoTransformNet(ImageTransformNet):
         video_loader = dataset.VideoDataset(batch_size=self.batch_size)
 
         for epoch in range(epochs):
+            # we freeze the 'external_weights' during the first epoch
+            # if these are present
+            if epoch == 0 and self.has_external_weights:
+                LOGGER.info('Freezing weights imported from fast transfer network for the first epoch')
+                for name, param in self.named_parameters():
+                    # all layers which are not the first one
+                    if not name.startswith('0.'):
+                        param.requires_grad = False
+
+            # next epoch we just 'unfreeze' all
+            if epoch == 1 and self.has_external_weights:
+                LOGGER.info('Unfreezing all weights')
+                for param in self.parameters():
+                    param.requires_grad = True
+
             LOGGER.info('Starting epoch %d', epoch)
 
             for video_batch in video_loader:
