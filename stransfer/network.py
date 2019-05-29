@@ -771,6 +771,16 @@ class VideoTransformNet(ImageTransformNet):
                 for param in self.parameters():
                     param.requires_grad = True
 
+            epoch_checkpoint_name = f'data/models/video_st_{style_name}_epoch{epoch}.pth'
+
+            # if the checkpoint file for this epoch exists then we
+            # just load it and go over to the next epoch
+            if os.path.isfile(epoch_checkpoint_name):
+                self.load_state_dict(
+                    torch.load(epoch_checkpoint_name)
+                )
+                continue
+
             LOGGER.info('Starting epoch %d', epoch)
 
             for video_batch in video_loader:
@@ -885,5 +895,5 @@ class VideoTransformNet(ImageTransformNet):
 
             torch.save(
                 self.state_dict(),
-                f'data/models/video_st_{style_name}_epoch{epoch}.pth'
+                epoch_checkpoint_name
             )
