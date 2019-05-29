@@ -50,18 +50,19 @@ def image_loader(image_name) -> torch.Tensor:
     return image_loader_transform(image)
 
 
-def imshow(image_tensor, ground_truth_image=None, path="out.bmp"):
+def imshow(image_tensor, ground_truth_image=None, denormalize=True, path="out.bmp"):
     # concat with ground truth if specified
     if ground_truth_image is not None:
         image_tensor = concat_images(image_tensor, ground_truth_image)
 
-    # denormalize image
-    img_mean = (torch.tensor(constants.IMAGENET_MEAN)
-                .view(-1, 1, 1))
-    img_std = (torch.tensor(constants.IMAGENET_STD)
-               .view(-1, 1, 1))
+    if denormalize:
+        # denormalize image
+        img_mean = (torch.tensor(constants.IMAGENET_MEAN)
+                    .view(-1, 1, 1))
+        img_std = (torch.tensor(constants.IMAGENET_STD)
+                   .view(-1, 1, 1))
 
-    image_tensor = (image_tensor * img_std) + img_mean
+        image_tensor = (image_tensor * img_std) + img_mean
 
     # clamp image to legal RGB values before showing
     image = torch.clamp(
