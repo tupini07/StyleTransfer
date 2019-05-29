@@ -836,7 +836,7 @@ class VideoTransformNet(ImageTransformNet):
     def video_train(self, style_name='nsp'):
         tb_writer = get_tensorboard_writer(f'runs/video-style-transfer_{style_name}')
 
-        VIDEO_FOLDER = 'video_samples/'
+        VIDEO_FOLDER = f'video_samples_{style_name}/'
         shutil.rmtree(VIDEO_FOLDER, ignore_errors=True)
         os.makedirs(VIDEO_FOLDER, exist_ok=True)
 
@@ -903,8 +903,8 @@ class VideoTransformNet(ImageTransformNet):
 
                         # TODO remove
                         img_utils.imshow(
-                            image_tensor=transformed_image[0].squeeze(),
-                            ground_truth_image=batch[0].squeeze(),
+                            image_tensor=transformed_image[2].squeeze(),
+                            ground_truth_image=batch[2].squeeze(),
                             path=f'{VIDEO_FOLDER}{iteration}_epoch{epoch}.png'
                         )
 
@@ -953,14 +953,14 @@ class VideoTransformNet(ImageTransformNet):
 
                         return total_loss
 
-                    total_loss = closure()
 
-                    tb_writer.add_scalar(
-                        'data/fst_train_loss',
-                        total_loss,
-                        iteration)
+                    if iteration % 20 == 0:
+                        total_loss = closure()
 
-                    if iteration % 10 == 0:
+                        tb_writer.add_scalar(
+                            'data/fst_train_loss',
+                            total_loss,
+                            iteration)
                         LOGGER.info('Batch Loss: %.8f', total_loss)
 
                     # if iteration % 150 == 0:
@@ -976,12 +976,12 @@ class VideoTransformNet(ImageTransformNet):
                             self(batch_with_old_content),  # transfor the image
                             min=0,
                             max=255
-                        )[0]
+                        )[2]
 
                         tb_writer.add_image('data/fst_images',
                                             img_utils.concat_images(
                                                 transformed_image.squeeze(),
-                                                batch[0].squeeze()),
+                                                batch[2].squeeze()),
                                             iteration)
                     iteration += 1
 
