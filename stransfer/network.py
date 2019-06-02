@@ -799,8 +799,8 @@ class VideoTransformNet(ImageTransformNet):
 
                         # TODO remove
                         img_utils.imshow(
-                            image_tensor=transformed_image[2].squeeze(),
-                            ground_truth_image=batch[2].squeeze(),
+                            image_tensor=transformed_image[1].squeeze(),
+                            ground_truth_image=batch[1].squeeze(),
                             path=f'{VIDEO_FOLDER}{iteration}_epoch{epoch}.png'
                         )
 
