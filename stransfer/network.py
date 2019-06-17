@@ -297,7 +297,7 @@ class StyleNetwork(nn.Module):
 
         return optimizer
 
-    def train_gatys(self, style_image, content_image, steps=550):
+    def train_gatys(self, style_image, content_image, steps=550, style_weight=1000000, content_weight=1) -> torch.Tensor:
         """
         Creates a new image with the style of `style_image` and the content
         of `content_image`, using the method proposed in
@@ -310,10 +310,6 @@ class StyleNetwork(nn.Module):
             style_image, torch.Tensor), 'Images need to be already loaded'
         assert isinstance(
             content_image, torch.Tensor), 'Images need to be already loaded'
-
-        # TODO move to parameters
-        style_weight = 1000000
-        content_weight = 1
 
         # start from content image
         input_image = content_image.clone()
