@@ -23,6 +23,7 @@ pycocotools = "*"
 requests = "*"
 imageio = "*"
 imageio-ffmpeg = "*"
+Pillow = "*"
 
 [requires]
 python_version = "3.7"

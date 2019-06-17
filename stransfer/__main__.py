@@ -74,10 +74,18 @@ def train_video():
     net = network.VideoTransformNet(style_image)
     net.video_train("picasso")
 
+def convert_video():
+    from stransfer import network
+    import torch
+    sty = network.VideoTransformNet(torch.rand([3, 255, 255]))
+    sty.video_process('data/video/0.mp4', style_name='picasso')
+
+
 if __name__ == "__main__":
     colored_traceback.add_hook()
+    convert_video()
     # run_gatys_style_transfer(0,0)
 
-    train_video()
+    # train_video()
     # run_fast_style_transfer(0, 0)
     # cli(**{})  # suppress warning

@@ -1,14 +1,15 @@
 import copy
-import logging
 import os
 import shutil
-from collections import OrderedDict
 
+import imageio
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
+from PIL import Image
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
@@ -32,6 +33,40 @@ _VGG = (_VGG
         .eval())  # by default we set the network to evaluation mode
 
 
+def adaptive_torch_load(weights_path):
+    if constants.DEVICE.type == "cuda":
+        return torch.load(weights_path, map_location='gpu')
+    else:
+        return torch.load(weights_path, map_location='cpu')
+
+
+def _load_latest_model_weigths(model_name: str,
+                               style_name: str,
+                               models_path='data/models/'):
+    """
+    :return: the weights file for the latest epoch corresponding
+    to the model and style specified.
+    :param models_path:
+    :return:
+    """
+
+    models_path = os.path.join(constants.PROJECT_ROOT_PATH, models_path)
+
+    try:
+        latest_weight_name = sorted([x for x in os.listdir(models_path)
+                                     if x.startswith(model_name) and
+                                     style_name in x])[-1]
+    except IndexError:
+        LOGGER.critical('There are no weights for the specified model name (%s) '
+                        'and style (%s). In the specified path: %s',
+                        model_name, style_name, models_path)
+
+        raise AssertionError('There are no weights for the specified '
+                             'model name and style.')
+
+    return adaptive_torch_load(models_path + latest_weight_name)
+
+
 class StyleLoss(nn.Module):
     def __init__(self, target):
         super().__init__()
@@ -42,7 +77,7 @@ class StyleLoss(nn.Module):
         # The size would be [batch_size, depth, height, width]
         bs, depth, height, width = input.size()
 
-        features = input.view(bs,  depth, height * width)
+        features = input.view(bs, depth, height * width)
         features_t = features.transpose(1, 2)
 
         # compute the gram product
@@ -53,7 +88,6 @@ class StyleLoss(nn.Module):
         return G.div(depth * height * width)
 
     def forward(self, input):
-
         G = self.gram_matrix(input)
         self.loss = F.mse_loss(G,
                                # correct the fact that we only have one
@@ -86,7 +120,7 @@ class ContentLoss(nn.Module):
         return input
 
 
-class FeatureReconstructionLoss (nn.Module):
+class FeatureReconstructionLoss(nn.Module):
     def __init__(self, target):
         super().__init__()
 
@@ -288,9 +322,7 @@ class StyleNetwork(nn.Module):
         optimizer = self.get_content_optimizer(input_image, optt=optim.LBFGS)
 
         for step in tqdm(range(steps)):
-
             def closure():
-
                 optimizer.zero_grad()
 
                 # pass content image through net
@@ -324,7 +356,7 @@ class ResidualBlock(nn.Module):
                                out_channels=out_channels,
                                kernel_size=kernel_size,
                                stride=stride,
-                               padding=kernel_size//2,
+                               padding=kernel_size // 2,
                                padding_mode='reflection')
         self.insn1 = nn.InstanceNorm2d(out_channels, affine=True)
         self.relu = nn.ReLU()
@@ -332,7 +364,7 @@ class ResidualBlock(nn.Module):
                                out_channels=out_channels,
                                kernel_size=kernel_size,
                                stride=stride,
-                               padding=kernel_size//2,
+                               padding=kernel_size // 2,
                                padding_mode='reflection')
 
         self.insn2 = nn.InstanceNorm2d(out_channels, affine=True)
@@ -366,7 +398,7 @@ class ScaledTanh(nn.Module):
     def forward(self, x):
         x = self.tanh(x)
 
-        x = ((x+1)/(2)) * (self.max - self.min)
+        x = ((x + 1) / (2)) * (self.max - self.min)
 
         return x
 
@@ -381,7 +413,7 @@ class ImageTransformNet(nn.Sequential):
                       out_channels=32,
                       kernel_size=9,
                       stride=1,
-                      padding=9//2,
+                      padding=9 // 2,
                       padding_mode='reflection'),
             nn.InstanceNorm2d(num_features=32, affine=True),
             nn.ReLU(),
@@ -391,7 +423,7 @@ class ImageTransformNet(nn.Sequential):
                       out_channels=64,
                       kernel_size=3,
                       stride=2,
-                      padding=3//2,
+                      padding=3 // 2,
                       padding_mode='reflection'),
             nn.InstanceNorm2d(num_features=64, affine=True),
             nn.ReLU(),
@@ -401,7 +433,7 @@ class ImageTransformNet(nn.Sequential):
                       out_channels=128,
                       kernel_size=3,
                       stride=2,
-                      padding=3//2,
+                      padding=3 // 2,
                       padding_mode='reflection'),
             nn.InstanceNorm2d(num_features=128, affine=True),
             nn.ReLU(),
@@ -438,7 +470,7 @@ class ImageTransformNet(nn.Sequential):
                       out_channels=64,
                       kernel_size=3,
                       stride=1,
-                      padding=3//2,
+                      padding=3 // 2,
                       padding_mode='reflection'),
             nn.InstanceNorm2d(num_features=64, affine=True),
             nn.ReLU(),
@@ -450,7 +482,7 @@ class ImageTransformNet(nn.Sequential):
                       out_channels=32,
                       kernel_size=3,
                       stride=1,
-                      padding=3//2,
+                      padding=3 // 2,
                       padding_mode='reflection'),
             nn.InstanceNorm2d(num_features=32, affine=True),
             nn.ReLU(),
@@ -460,7 +492,7 @@ class ImageTransformNet(nn.Sequential):
                       out_channels=3,
                       kernel_size=9,
                       stride=1,
-                      padding=9//2,
+                      padding=9 // 2,
                       padding_mode='reflection'),
 
         )
@@ -479,31 +511,26 @@ class ImageTransformNet(nn.Sequential):
                                                 regularization_factor=1e-6) -> torch.Tensor:
         # ? see: https://en.wikipedia.org/wiki/Total_variation_denoising#2D_signal_images
         return regularization_factor * (
-            torch.sum(torch.abs(
-                transformed_image[:, :, :, :-1] - transformed_image[:, :, :, 1:])
-            ) +
-            torch.sum(
-                torch.abs(
-                    transformed_image[:, :, :-1, :] - transformed_image[:, :, 1:, :])
-            ))
+                torch.sum(torch.abs(
+                    transformed_image[:, :, :, :-1] - transformed_image[:, :, :, 1:])
+                ) +
+                torch.sum(
+                    torch.abs(
+                        transformed_image[:, :, :-1, :] - transformed_image[:, :, 1:, :])
+                ))
 
     def get_optimizer(self, optimizer=optim.Adam):
         params = self.parameters()
 
         return optimizer(params)
 
-    def static_train(self, style_name='nsp'):
+    def static_train(self, style_name='nsp', epochs=50,
+                     style_weight=100_000, content_weight=1):
         """
         Trains a fast style transfer network for style transfer on still images.
         """
         tb_writer = get_tensorboard_writer(
             f'runs/fast-image-style-transfer-still-image_{style_name}')
-
-        # TODO: parametrize
-        epochs = 50
-        steps = 30
-        style_weight = 100_000
-        feature_weight = content_weight = 1
 
         # TODO: try adding the following so that grads are not computed
         # with torch.no_grad():
@@ -512,7 +539,6 @@ class ImageTransformNet(nn.Sequential):
                                         constants.DEVICE))
 
         optimizer = self.get_optimizer(optimizer=optim.Adam)
-        # optimizer = self.get_optimizer(optimizer=optim.LBFGS)
 
         LOGGER.info('Training network with "%s" optimizer', type(optimizer))
 
@@ -530,7 +556,7 @@ class ImageTransformNet(nn.Sequential):
             # just load it and go over to the next epoch
             if os.path.isfile(epoch_checkpoint_name):
                 self.load_state_dict(
-                    torch.load(epoch_checkpoint_name)
+                    adaptive_torch_load(epoch_checkpoint_name)
                 )
                 continue
 
@@ -540,21 +566,7 @@ class ImageTransformNet(nn.Sequential):
                 def closure():
                     optimizer.zero_grad()
 
-                    # Clamping seems to hurt performance. The network
-                    # starts outputting only 0 for the pixel values
-                    # transformed_image = torch.clamp(
-                    #     self(image),  # transfor the image
-                    #     min=0,
-                    #     max=255
-                    # )
-
                     transformed_image = self(batch)
-
-                    # # TODO remove
-                    # img_utils.imshow(
-                    #     image_tensor=transformed_image[0].squeeze(),
-                    #     ground_truth_image=batch[0].squeeze()
-                    # )
 
                     # evaluate how good the transformation is
                     loss_network(transformed_image,
@@ -564,9 +576,14 @@ class ImageTransformNet(nn.Sequential):
                     style_loss = loss_network.get_total_current_style_loss(
                         weight=style_weight
                     )
-                    feature_loss = loss_network.get_total_current_feature_loss(
-                        weight=feature_weight
-                    )
+
+                    # Feature loss doesn't seem to be much better than the normal
+                    # content loss
+                    # feature_weight = 1
+                    # feature_loss = loss_network.get_total_current_feature_loss(
+                    #     weight=feature_weight
+                    # )
+
                     content_loss = loss_network.get_total_current_content_loss(
                         weight=content_weight
                     )
@@ -574,10 +591,7 @@ class ImageTransformNet(nn.Sequential):
                         transformed_image
                     )
 
-                    # total_loss = feature_loss + style_loss
-                    # total_loss = style_loss + content_loss
-                    # total_loss = style_loss
-                    # total_loss = feature_loss
+                    # calculate loss
                     total_loss = style_loss + content_loss + regularization_loss
 
                     total_loss.backward()
@@ -610,9 +624,8 @@ class ImageTransformNet(nn.Sequential):
                         'data/fst_test_loss', average_test_loss, iteration)
 
                 if iteration % 50 == 0:
-
                     transformed_image = torch.clamp(
-                        self(batch),  # transfor the image
+                        self(batch),  # transform the image
                         min=0,
                         max=255
                     )[0]
@@ -632,20 +645,13 @@ class ImageTransformNet(nn.Sequential):
                 epoch_checkpoint_name
             )
 
-    def static_test(self, test_loader, loss_network):
+    def static_test(self, test_loader, loss_network, style_weight=100_000, feature_weight=1):
         """
         Tests the performance of a fast style transfer network on still images
         """
 
-        # TODO: parametrize
-        epochs = 50
-        steps = 30
-        style_weight = 1000000
-        feature_weight = 1
-
         total_test_loss = []
         for test_batch in test_loader:
-
             transformed_image = torch.clamp(
                 self(test_batch.squeeze(1)),  # transfor the image
                 min=0,
@@ -675,7 +681,7 @@ class VideoTransformNet(ImageTransformNet):
                             out_channels=32,
                             kernel_size=9,
                             stride=1,
-                            padding=9//2,
+                            padding=9 // 2,
                             padding_mode='reflection')
 
         # since this video net is exactly the same as the ImageTransformNet
@@ -685,7 +691,7 @@ class VideoTransformNet(ImageTransformNet):
             # if 'fast_transfer_dict' is a string then we take it to be the path
             # to a dump of the weights. So we load it.
             if isinstance(fast_transfer_dict, str):
-                fast_transfer_dict = torch.load(fast_transfer_dict)
+                fast_transfer_dict = adaptive_torch_load(fast_transfer_dict)
 
             # but first we have to remove the 'weight' and 'bias' for the first layer,
             # since this is the one we will be replacing in this 'VideoTransformNet'
@@ -710,26 +716,22 @@ class VideoTransformNet(ImageTransformNet):
                           current_content, current_stylized,
                           temporal_weight=1):
 
-        # ? see https://github.com/tupini07/StyleTransfer/issues/5
+        # see https://github.com/tupini07/StyleTransfer/issues/5
 
         change_in_style = (current_stylized - old_stylized).norm()
         change_in_content = (current_content - old_content).norm()
 
-        return (change_in_style/(change_in_content + 1)) * temporal_weight
+        return (change_in_style / (change_in_content + 1)) * temporal_weight
 
-    def video_train(self, style_name='nsp'):
+    def video_train(self, style_name='nsp',
+                    epochs=50, temporal_weight=0.8, style_weight=100_000, feature_weight=1, content_weight=1):
+
         tb_writer = get_tensorboard_writer(
             f'runs/video-style-transfer_{style_name}')
 
         VIDEO_FOLDER = f'video_samples_{style_name}/'
         shutil.rmtree(VIDEO_FOLDER, ignore_errors=True)
         os.makedirs(VIDEO_FOLDER, exist_ok=True)
-
-        # TODO: parametrize
-        epochs = 50
-        temporal_weight = 0.8
-        style_weight = 100_000
-        feature_weight = content_weight = 1
 
         # TODO: try adding the following so that grads are not computed
         # with torch.no_grad():
@@ -767,7 +769,7 @@ class VideoTransformNet(ImageTransformNet):
             # just load it and go over to the next epoch
             if os.path.isfile(epoch_checkpoint_name):
                 self.load_state_dict(
-                    torch.load(epoch_checkpoint_name)
+                    adaptive_torch_load(epoch_checkpoint_name)
                 )
                 continue
 
@@ -796,13 +798,6 @@ class VideoTransformNet(ImageTransformNet):
                         optimizer.zero_grad()
 
                         transformed_image = self(batch_with_old_content)
-
-                        # TODO remove
-                        img_utils.imshow(
-                            image_tensor=transformed_image[2].squeeze(),
-                            ground_truth_image=batch[2].squeeze(),
-                            path=f'{VIDEO_FOLDER}{iteration}_epoch{epoch}.png'
-                        )
 
                         style_loss_network(transformed_image,
                                            content_image=batch)
@@ -859,17 +854,9 @@ class VideoTransformNet(ImageTransformNet):
                         LOGGER.info('Epoch: %d\tBatch Loss: %.4f',
                                     epoch, total_loss)
 
-                    # if iteration % 150 == 0:
-                    #     average_test_loss = self.static_test(
-                    #         test_loader, style_loss_network)
-
-                    #     tb_writer.add_scalar(
-                    #         'data/fst_test_loss', average_test_loss, iteration)
-
                     if iteration % 50 == 0:
-
                         transformed_image = torch.clamp(
-                            self(batch_with_old_content),  # transfor the image
+                            self(batch_with_old_content),  # transform the image
                             min=0,
                             max=255
                         )[2]
@@ -888,3 +875,75 @@ class VideoTransformNet(ImageTransformNet):
                 self.state_dict(),
                 epoch_checkpoint_name
             )
+
+    def video_process(self, video_path: str, style_name='nsp',
+                      working_dir='workdir/',
+                      out_dir='results/', fps=24.0):
+
+        video_path = os.path.join(constants.PROJECT_ROOT_PATH, video_path)
+        working_dir = os.path.join(constants.PROJECT_ROOT_PATH, working_dir)
+        out_dir = os.path.join(constants.PROJECT_ROOT_PATH, out_dir)
+
+        # set weights to latest checkpoint
+        self.load_state_dict(
+            _load_latest_model_weigths(
+                model_name='video_st',
+                style_name=style_name
+            )
+        )
+
+        # we can treat this as a video batch of 1
+        video_reader = [imageio.get_reader(video_path)]
+
+        # first we process each video frame, then we join those frames into
+        # a final video
+
+        # ensure that working_dir is empty
+        shutil.rmtree(working_dir, ignore_errors=True)
+
+        # ensure that the working and result directories exist
+        os.makedirs(working_dir, exist_ok=True)
+        os.makedirs(out_dir, exist_ok=True)
+
+        # of shape [content, stylized]
+        old_image = None
+
+        LOGGER.info('Starting to process video into stylized frames')
+
+        # Stylize all frames separately
+        for i, video_frame in enumerate(dataset.iterate_on_video_batches(video_reader)):
+
+            # if we're in new epoch then previous frame is None
+            if old_image is None:
+                old_image = video_frame
+
+            batch_with_old_content = torch.cat(
+                [video_frame, old_image],
+                dim=1)
+
+            # Get the transformed video image
+            transformed_image = self(batch_with_old_content)
+
+            # set old image variable
+            old_image = transformed_image.detach()
+
+            img_utils.imshow(transformed_image[0],
+                             path=f'{working_dir}{i}.png')
+
+            if i % 50 == 0:
+                LOGGER.info('.. processing, currently frame %d', i)
+
+        # convert stylized frames into video
+        LOGGER.info('All frames have been stylized.')
+
+        final_path = os.path.join(out_dir, f'video_st_{style_name}.mp4')
+
+        LOGGER.info('Joining stylized frames into a video')
+
+        video_writer = imageio.get_writer(final_path, fps=fps)
+
+        frame_files = sorted(os.listdir(working_dir))
+        for frame_name in tqdm(frame_files):
+            video_writer.append_data(np.array(Image.open(working_dir + frame_name)))
+
+        LOGGER.info('Done! Final stylized video can be found in: %s', final_path)

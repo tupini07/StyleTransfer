@@ -1,13 +1,11 @@
 import json
 import os
 import random
-import urllib.request
 from typing import Tuple
 
 import imageio
 import requests
 import torch
-import torchvision
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
@@ -49,6 +47,8 @@ def download_from_url(url, dst):
 
 
 def download_list_of_urls(urls):
+    name_counter = 0
+
     for url in urls:
         try:
             filename = url.split('/')[-1]
@@ -64,7 +64,6 @@ def download_list_of_urls(urls):
 
 
 def download_videos_dataset():
-
     videos_to_download = [
         "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
         "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
@@ -74,7 +73,6 @@ def download_videos_dataset():
 
     os.makedirs(VIDEO_DATA_PATH, exist_ok=True)
 
-    name_counter = 0
     if len(videos_to_download) != len(os.listdir(VIDEO_DATA_PATH)):
         download_list_of_urls(videos_to_download)
 

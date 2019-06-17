@@ -14,7 +14,7 @@ events.out.tfevents*
 *.png
 data/coco_dataset/images
 data/coco_dataset/images/*
-
+.idea/
 *.pth
 
 # Distribution / packaging

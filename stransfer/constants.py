@@ -1,3 +1,5 @@
+import os
+
 import torch
 
 RUNS_PATH = 'runs/'
@@ -15,7 +17,8 @@ if DEVICE.type == "cuda":
 else:
     torch.set_default_tensor_type(torch.FloatTensor)
 
-
 # desired size of the output image
 # IMSIZE = 512 if torch.cuda.is_available() else 128  # use small size if no gpu
 IMSIZE = 256
+
+PROJECT_ROOT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
