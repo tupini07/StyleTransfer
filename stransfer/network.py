@@ -759,7 +759,8 @@ class VideoTransformNet(ImageTransformNet):
         return (change_in_style / (change_in_content + 1)) * temporal_weight
 
     def video_train(self, style_name='nsp',
-                    epochs=50, temporal_weight=0.8, style_weight=100_000, feature_weight=1, content_weight=1):
+                    epochs=50, temporal_weight=0.8, style_weight=100_000,
+                    feature_weight=1, content_weight=1):
 
         tb_writer = get_tensorboard_writer(
             f'runs/video-style-transfer_{style_name}')
@@ -841,9 +842,10 @@ class VideoTransformNet(ImageTransformNet):
                             weight=style_weight
                         )
 
-                        feature_loss = style_loss_network.get_total_current_feature_loss(
-                            weight=feature_weight
-                        )
+                        # feature weights don't seem to improve much the final results
+                        # feature_loss = style_loss_network.get_total_current_feature_loss(
+                        #     weight=feature_weight
+                        # )
                         content_loss = style_loss_network.get_total_current_content_loss(
                             weight=content_weight
                         )
