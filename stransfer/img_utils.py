@@ -44,7 +44,7 @@ def concat_images(im1, im2, dim=2) -> torch.Tensor:
         dim=dim)
 
 
-def image_loader(image_name) -> torch.Tensor:
+def image_loader(image_name: str) -> torch.Tensor:
     image = Image.open(image_name)
 
     return image_loader_transform(image)

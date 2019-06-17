@@ -35,7 +35,7 @@ _VGG = (_VGG
 
 def adaptive_torch_load(weights_path):
     if constants.DEVICE.type == "cuda":
-        return torch.load(weights_path, map_location='gpu')
+        return torch.load(weights_path, map_location='cuda')
     else:
         return torch.load(weights_path, map_location='cpu')
 
@@ -146,7 +146,6 @@ class FeatureReconstructionLoss(nn.Module):
 
 
 class StyleNetwork(nn.Module):
-    # TODO check if these layers are ok
     content_layers = [  # from where image content will be taken
         #  'Conv2d_1',
         #  'Conv2d_2',
@@ -300,7 +299,11 @@ class StyleNetwork(nn.Module):
 
     def train_gatys(self, style_image, content_image, steps=550):
         """
-        To train on only one content and style images
+        Creates a new image with the style of `style_image` and the content
+        of `content_image`, using the method proposed in
+
+        A Neural Algorithm of Artistic Style - Gatys (2015)
+        https://arxiv.org/abs/1508.06576
         """
 
         assert isinstance(
@@ -345,9 +348,9 @@ class StyleNetwork(nn.Module):
         return input_image
 
 
-# based on the residual block implementation from:
-# https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/deep_residual_network/main.py
 class ResidualBlock(nn.Module):
+    # based on the residual block implementation from:
+    # https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/deep_residual_network/main.py
     def __init__(self, in_channels, out_channels,
                  kernel_size=3, stride=1):
         super().__init__()
@@ -671,6 +674,42 @@ class ImageTransformNet(nn.Sequential):
 
         return average_test_loss
 
+    def process_image(self, image_path: str, style_name='nsp', out_dir='results/') -> None:
+        """
+        Processes a given input image at `image_path` with a network pretrained on the
+        style `style_name`.
+
+        Saves the processed image to `out_dir`
+
+        :param image_path: path to the image we want to stylize
+        :param style_name: name of the style we want to apply to the image. Note that a
+            pretrained model with said style must exist in `data/models/`
+        :param out_dir: directory were the stylized image will be saved
+        """
+
+        # set weights to latest checkpoint
+        self.load_state_dict(
+            _load_latest_model_weigths(
+                model_name='fast_st',
+                style_name=style_name
+            )
+        )
+
+        input_image = img_utils.image_loader(
+            os.path.join(constants.PROJECT_ROOT_PATH, image_path))
+
+        # transform the image
+        transformed_image = self(input_image)
+
+        # save the image
+        out_dir = os.path.join(constants.PROJECT_ROOT_PATH, out_dir)
+
+        # ensure that the result directory exist
+        os.makedirs(out_dir, exist_ok=True)
+
+        out_file = os.path.join(out_dir, f'converted_fast_st_{style_name}.png')
+        img_utils.imshow(transformed_image, path=out_file)
+
 
 class VideoTransformNet(ImageTransformNet):
 
@@ -876,7 +915,7 @@ class VideoTransformNet(ImageTransformNet):
                 epoch_checkpoint_name
             )
 
-    def video_process(self, video_path: str, style_name='nsp',
+    def process_video(self, video_path: str, style_name='nsp',
                       working_dir='workdir/',
                       out_dir='results/', fps=24.0):
 
