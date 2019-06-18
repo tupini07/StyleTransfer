@@ -10,7 +10,7 @@ LOGGER = c_logging.get_logger()
 
 @click.group()
 def cli():
-    """Functionality related to style transfer for videos"""
+    """Video Style Transfer"""
     pass
 
 
@@ -71,8 +71,8 @@ def train(style_image_path, epochs, batch_size, content_weight, style_weight, te
 @click.option('--fps', default=24.0, help='The FPS that will be used when saving the transformed video')
 def convert_video(video_path, style_name, out_dir, fps):
     """
-    Converts the image at `image-path` using the network pretrained with `style-name`
-    and saves the resulting transformed image in `out-dir`.
+    Converts the video at `video-path` using the network pretrained with `style-name`
+    and saves the resulting transformed video in `out-dir`.
 
     A pretrained model should exist in `data/models/` for the specified `style-name`.
 
