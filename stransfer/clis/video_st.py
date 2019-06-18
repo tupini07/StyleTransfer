@@ -47,7 +47,7 @@ def train(style_image_path, epochs, batch_size, content_weight, style_weight, te
         try:
             ft_pretrained_w = network._load_latest_model_weigths('fast_st', style_name)
         except AssertionError:
-            LOGGER.warn("Couldn't load pretrained weights")
+            LOGGER.warning("Couldn't load pretrained weights")
 
     style_image_path = os.path.join(constants.PROJECT_ROOT_PATH, style_image_path)
     style_image = img_utils.image_loader(style_image_path)
@@ -69,7 +69,7 @@ def train(style_image_path, epochs, batch_size, content_weight, style_weight, te
 @click.option('-o', '--out-dir', default='results/',
               help='The results directory where the converted style will be saved')
 @click.option('--fps', default=24.0, help='The FPS that will be used when saving the transformed video')
-def convert_video(video_path, style_name, out_dir):
+def convert_video(video_path, style_name, out_dir, fps):
     """
     Converts the image at `image-path` using the network pretrained with `style-name`
     and saves the resulting transformed image in `out-dir`.
@@ -83,4 +83,5 @@ def convert_video(video_path, style_name, out_dir):
     sty = network.VideoTransformNet(torch.rand([3, 255, 255]))
     sty.process_video(video_path=video_path,
                       style_name=style_name,
-                      out_dir=out_dir)
+                      out_dir=out_dir,
+                      fps=fps)

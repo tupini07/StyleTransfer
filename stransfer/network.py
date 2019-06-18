@@ -23,22 +23,28 @@ from stransfer import c_logging, constants, dataset, img_utils
 LOGGER = c_logging.get_logger()
 
 
-def get_tensorboard_writer(path):
+def get_tensorboard_writer(path: str) -> SummaryWriter:
+    """
+    Creates a TensorBoard writer at the folder with `path`.
+
+    If `path` exists then it is deleted and recreated.
+
+    :param path: the path where our SummaryWriter will write
+    :return: an initialized SummaryWriter
+    """
     shutil.rmtree(path, ignore_errors=True)
     return SummaryWriter(path)
 
 
-_VGG = torchvision.models.vgg19(pretrained=True)
-_VGG = (_VGG
+def adaptive_torch_load(weights_path: str):
+    """
+    When loading saved weights, we check if need to map them to
+    either `cuda` or `cpu`.
 
-        # we only want the `features` part of VGG19 (see print(_vgg) for structure)
-        .features
+    :param weights_path: paths of the weights to load
+    :return: the loaded weights
+    """
 
-        .to(constants.DEVICE)
-        .eval())  # by default we set the network to evaluation mode
-
-
-def adaptive_torch_load(weights_path):
     if constants.DEVICE.type == "cuda":
         return torch.load(weights_path, map_location='cuda')
     else:
@@ -49,10 +55,9 @@ def _load_latest_model_weigths(model_name: str,
                                style_name: str,
                                models_path='data/models/'):
     """
+    :param models_path: path where the pretrained models are saved
     :return: the weights file for the latest epoch corresponding
-    to the model and style specified.
-    :param models_path:
-    :return:
+        to the model and style specified.
     """
 
     models_path = os.path.join(constants.PROJECT_ROOT_PATH, models_path)
@@ -73,12 +78,25 @@ def _load_latest_model_weigths(model_name: str,
 
 
 class StyleLoss(nn.Module):
-    def __init__(self, target):
+    """
+    Implementation of the style loss
+    """
+
+    def __init__(self, target: torch.Tensor):
+        """
+        :param target: the tensor representing the style image we want to
+            take as reference during training
+        """
+
         super().__init__()
 
         self.set_target(target)
 
-    def gram_matrix(self, input):
+    def gram_matrix(self, input: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate the gram matrix for the `input` tensor
+        """
+
         # The size would be [batch_size, depth, height, width]
         bs, depth, height, width = input.size()
 
@@ -92,7 +110,13 @@ class StyleLoss(nn.Module):
         # by dividing by the number of element in each feature maps.
         return G.div(depth * height * width)
 
-    def forward(self, input):
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        """
+        Compare the gram matrix of the `input` with that of the `target`.
+        By doing this we calculate the style loss, which is saved to a local
+        `loss` attribute.
+        """
+
         G = self.gram_matrix(input)
         self.loss = F.mse_loss(G,
                                # correct the fact that we only have one
@@ -101,24 +125,43 @@ class StyleLoss(nn.Module):
 
         return input
 
-    def set_target(self, target):
+    def set_target(self, target: torch.Tensor):
+        """
+        This method allows us to change the style target of the loss
+        """
         # Here the target is the conv layer which we're taking as reference
         # as the style source
         self.target = self.gram_matrix(target).detach()
 
 
 class ContentLoss(nn.Module):
-    def __init__(self, target):
+    """
+    Implementation of the content loss
+    """
+
+    def __init__(self, target: torch.Tensor):
+        """
+        :param target: the target image we want to use to calculate the content
+            loss
+        """
         super().__init__()
 
         # Here the target is the conv layer which we're taking as reference
         # as the content source
         self.set_target(target)
 
-    def set_target(self, target):
+    def set_target(self, target: torch.Tensor):
+        """
+        This method allows us to set the target image of this content loss instance
+        """
         self.target = target.detach()
 
-    def forward(self, input):
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate the distance between the `input` image and the `target`.
+        This is saved to a local `loss` attribute.
+        """
+
         # Content loss is just the per pixel distance between an input and
         # the target
         self.loss = F.mse_loss(input, self.target)
@@ -126,17 +169,22 @@ class ContentLoss(nn.Module):
 
 
 class FeatureReconstructionLoss(nn.Module):
-    def __init__(self, target):
+    """
+    Implementation of the feature reconstruction loss.
+    NOTE: this is currently not used
+    """
+
+    def __init__(self, target: torch.Tensor):
         super().__init__()
 
         # Here the target is the conv layer which we're taking as reference
         # as the content source
         self.set_target(target)
 
-    def set_target(self, target):
+    def set_target(self, target: torch.Tensor):
         self.target = target.detach()
 
-    def forward(self, input):
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
         # Content loss is just the per pixel distance between an input and
         # the target
         l2_norm = F.mse_loss(input, self.target)
@@ -151,7 +199,13 @@ class FeatureReconstructionLoss(nn.Module):
 
 
 class StyleNetwork(nn.Module):
-    content_layers = [  # from where image content will be taken
+    """
+    Implementation of the StyleNetwork as defined in
+        A Neural Algorithm of Artistic Style - Gatys (2015)
+        https://arxiv.org/abs/1508.06576
+    """
+
+    content_layers = [  # layers from where image content will be taken
         #  'Conv2d_1',
         #  'Conv2d_2',
         #  'Conv2d_3',
@@ -159,7 +213,7 @@ class StyleNetwork(nn.Module):
         #  'Conv2d_5',
     ]
 
-    style_layers = [  # were the image style will be taken from
+    style_layers = [  # layers were the image style will be taken from
         'Conv2d_1',
         'Conv2d_2',
         'Conv2d_3',
@@ -167,22 +221,33 @@ class StyleNetwork(nn.Module):
         'Conv2d_5',
     ]
 
-    feature_loss_layers = [
+    feature_loss_layers = [  # layer for the feature loss
         'ReLU_4',
     ]
 
-    def __init__(self, style_image, content_image=torch.zeros([1, 3, 256, 256])):
+    def __init__(self, style_image: torch.Tensor, content_image=torch.zeros([1, 3, 256, 256])):
+        """
+        :param style_image: tensor of the image we want to use as a source for the style
+        :param content_image: tensor of the image we want to use as the source for the content
+        """
         super().__init__()
 
         self.content_losses = []
         self.style_losses = []
         self.feature_losses = []
 
-        # TODO: It is safer to do a deepcopy. But in the meantime
-        # we don't want to occupy extra memory
-        vgg = copy.deepcopy(_VGG)
-        # vgg = _VGG
+        # we use the vgg19 net to get the losses during training
+        vgg = (torchvision.models.vgg19(pretrained=True)
 
+               # we only want the `features` part of VGG19 (see print(vgg) for structure)
+               .features
+
+               .to(constants.DEVICE)
+               .eval())  # by default we set the network to evaluation mode
+
+        # separate the network in pieces. These are limited by the layers
+        # specified in the `content_layers`, `style_layers`, and `feature_loss_layers`
+        # Each piece is basically a sequential network
         self.net_pieces = [
             nn.Sequential()
         ]
@@ -191,6 +256,8 @@ class StyleNetwork(nn.Module):
         current_piece = 0
         i = 0
         for layer in vgg:
+            # for each layer in VGG, simply add it to the sequential net corresponding
+            # to the layer we're currently working on (and give it an appropriate name)
             if isinstance(layer, nn.Conv2d):
                 i += 1
 
@@ -201,12 +268,26 @@ class StyleNetwork(nn.Module):
             layer_name = type(layer).__name__ + f"_{i}"
             self.net_pieces[current_piece].add_module(layer_name, layer)
 
+            # if the layer is used to calculate the content, style, or feature losses then:
+            # Save in the appropriate list the 'pointer' to the loss and the piece where
+            # it belongs
             if layer_name in self.content_layers:
+                # output of passing the `content_image` through all layers we've
+                # processed until now
                 layer_output = self.run_through_pieces(content_image)
+
+                # calculate content loss
                 content_loss = ContentLoss(layer_output)
+
+                # save pointer to content loss in `self.content_losses` together
+                # with the INDEX of the piece to which it corresponds
                 self.content_losses.append([content_loss, current_piece])
+
+                # finally, say that a loss has been added so that the next iteration we
+                # start with a new network piece
                 loss_added = True
 
+            # same is to be done for the style and feature losses
             if layer_name in self.style_layers:
                 layer_output = self.run_through_pieces(style_image)
                 style_loss = StyleLoss(layer_output)
@@ -219,13 +300,23 @@ class StyleNetwork(nn.Module):
                 self.feature_losses.append([feature_loss, current_piece])
                 loss_added = True
 
+            # If a loss has been added for the current layer then we say
+            # that we're now working on a different piece
             if loss_added:
-                self.net_pieces.append(current_piece)
+                self.net_pieces.append(nn.Sequential())
                 current_piece += 1
-                self.net_pieces[current_piece] = nn.Sequential()
                 loss_added = False
 
-    def run_through_pieces(self, input_g, until=-1):
+    def run_through_pieces(self, input_g: torch.Tensor, until=-1) -> torch.Tensor:
+        """
+        Runs ths input `input_g` through all the pieces of the network, or until the
+        specified layer if `until` is not `-1`
+
+        :param input_g: the input to run through the network
+        :param until: by default `-1`. If changed then it specified until which layer
+            we want to run the input through
+        :return: the output of running the input through all the specified layers
+        """
         x = input_g
 
         # if no array of pieces is provided then we just run the input
@@ -242,7 +333,7 @@ class StyleNetwork(nn.Module):
 
         return x
 
-    def get_total_current_content_loss(self, weight=1):
+    def get_total_current_content_loss(self, weight=1) -> torch.Tensor:
         """
         Returns the sum of all the `loss` present in all
         *content* nodes
@@ -250,7 +341,7 @@ class StyleNetwork(nn.Module):
 
         return weight * torch.stack([x[0].loss for x in self.content_losses]).sum()
 
-    def get_total_current_feature_loss(self, weight=1):
+    def get_total_current_feature_loss(self, weight=1) -> torch.Tensor:
         """
         Returns the sum of all the `loss` present in all
         *content* nodes
@@ -258,7 +349,7 @@ class StyleNetwork(nn.Module):
 
         return weight * torch.stack([x[0].loss for x in self.feature_losses]).sum()
 
-    def get_total_current_style_loss(self, weight=1):
+    def get_total_current_style_loss(self, weight=1) -> torch.Tensor:
         """
         Returns the sum of all the `loss` present in all
         *style* nodes
@@ -266,7 +357,16 @@ class StyleNetwork(nn.Module):
 
         return weight * torch.stack([x[0].loss for x in self.style_losses]).sum()
 
-    def forward(self, input_image, content_image=None, style_image=None):
+    def forward(self, input_image: torch.Tensor, content_image=None, style_image=None):
+        """
+        Given an input image pass it through all layers in the network
+
+        :param input_image: the image to pass through the network
+        :param content_image: if specified then this will change the curret target
+            for the content loss
+        :param style_image: if specified then this will change the current target
+            for the style loss
+        """
 
         # first set content, feature, and style targets
         for (loss, piece_idx) in self.content_losses + self.feature_losses:
@@ -302,13 +402,16 @@ class StyleNetwork(nn.Module):
 
         return optimizer
 
-    def train_gatys(self, style_image, content_image, steps=550, style_weight=1000000, content_weight=1) -> torch.Tensor:
+    def train_gatys(self, style_image: torch.Tensor,
+                    content_image: torch.Tensor,
+                    steps=550,
+                    style_weight=1000000,
+                    content_weight=1) -> torch.Tensor:
         """
         Creates a new image with the style of `style_image` and the content
-        of `content_image`, using the method proposed in
+        of `content_image`
 
-        A Neural Algorithm of Artistic Style - Gatys (2015)
-        https://arxiv.org/abs/1508.06576
+        :return: the converted image
         """
 
         assert isinstance(
@@ -392,26 +495,21 @@ class ResidualBlock(nn.Module):
         return out
 
 
-class ScaledTanh(nn.Module):
-    def __init__(self, min_=0, max_=255):
-        super().__init__()
-        self.tanh = nn.Tanh()
-        self.min = min_
-        self.max = max_
-
-    def forward(self, x):
-        x = self.tanh(x)
-
-        x = ((x + 1) / (2)) * (self.max - self.min)
-
-        return x
-
-
 class ImageTransformNet(nn.Sequential):
-    def __init__(self, style_image, batch_size=4):
+    """
+    This the implementation of the fast style transform, image transform
+    network, as defined in:
+        Perceptual Losses for Real-Time Style Transfer and Super-Resolution
+        https://arxiv.org/abs/1603.08155
+    """
+    def __init__(self, style_image: torch.Tensor, batch_size=4):
+        """
+        :param style_image: The image we want to use as as the style reference
+        :param batch_size: the size of the batch
+        """
         super().__init__(
 
-            # * Initial convolutional layers
+            # Initial convolutional layers
             # First Conv
             nn.Conv2d(in_channels=3,
                       out_channels=32,
@@ -463,10 +561,10 @@ class ImageTransformNet(nn.Sequential):
                           out_channels=128,
                           kernel_size=3),
 
-            # * Deconvolution layers
-            # ? According to https://distill.pub/2016/deconv-checkerboard/
-            # ? an upsampling layer followed by a convolution layer
-            # ? yields better results
+            # Deconvolution layers
+            # According to https://distill.pub/2016/deconv-checkerboard/
+            # an upsampling layer followed by a convolution layer
+            # yields better results
             # First 'deconvolution' layer
             nn.Upsample(mode='nearest',
                         scale_factor=2),
@@ -506,14 +604,22 @@ class ImageTransformNet(nn.Sequential):
         assert isinstance(
             style_image, torch.Tensor), 'Style image need to be already loaded'
 
-        # we need to ensure that we have enough style images for the batch
-        # NOTE: this could also be accomplished by letting pytorch broadcast
         self.style_image = style_image
         self.batch_size = batch_size
 
-    def get_total_variation_regularization_loss(self, transformed_image: torch.Tensor,
+    def get_total_variation_regularization_loss(self,
+                                                transformed_image: torch.Tensor,
                                                 regularization_factor=1e-6) -> torch.Tensor:
-        # ? see: https://en.wikipedia.org/wiki/Total_variation_denoising#2D_signal_images
+        """
+        Calculate a regularization loss, which will tell us how 'noisy' is the current image.
+        Penalize if it is very noisy.
+        See: https://en.wikipedia.org/wiki/Total_variation_denoising#2D_signal_images
+
+        :param transformed_image: image for which we will get the loss
+        :param regularization_factor: 'weight' to scale the loss
+        :return: the regularization loss
+        """
+
         return regularization_factor * (
                 torch.sum(torch.abs(
                     transformed_image[:, :, :, :-1] - transformed_image[:, :, :, 1:])
@@ -524,6 +630,9 @@ class ImageTransformNet(nn.Sequential):
                 ))
 
     def get_optimizer(self, optimizer=optim.Adam):
+        """
+        Get an initialized optimizer
+        """
         params = self.parameters()
 
         return optimizer(params)
@@ -713,8 +822,19 @@ class ImageTransformNet(nn.Sequential):
 
 
 class VideoTransformNet(ImageTransformNet):
+    """
+    Implementation of the video transform net.
+    """
 
-    def __init__(self, style_image, batch_size=4, fast_transfer_dict=None):
+    def __init__(self, style_image: torch.Tensor, batch_size=4, fast_transfer_dict=None):
+        """
+        :param style_image: image we'll use as style reference
+        :param batch_size: size of the batch
+        :param fast_transfer_dict: state dict from a pretrained 'fast style network'. It
+            allows us to start training the video model from this, which allows to
+            bootstrap training. It is recommended to do this since the current video set
+            is not very big.
+        """
         super().__init__(style_image, batch_size)
 
         self[0] = nn.Conv2d(in_channels=6,
@@ -754,9 +874,18 @@ class VideoTransformNet(ImageTransformNet):
 
     def get_temporal_loss(self, old_content, old_stylized,
                           current_content, current_stylized,
-                          temporal_weight=1):
+                          temporal_weight=1) -> torch.Tensor:
+        """
+        Calculates the temporal loss
+        See https://github.com/tupini07/StyleTransfer/issues/5
 
-        # see https://github.com/tupini07/StyleTransfer/issues/5
+        :param old_content: tensor representing the content of the previous frame
+        :param old_stylized: tensor representing the stylized previous frame
+        :param current_content: tensor representing the content of the current frame
+        :param current_stylized: tensor representing the stylized current frame
+        :param temporal_weight: weight for the temporal loss
+        :return: the temporal loss
+        """
 
         change_in_style = (current_stylized - old_stylized).norm()
         change_in_content = (current_content - old_content).norm()
@@ -765,7 +894,18 @@ class VideoTransformNet(ImageTransformNet):
 
     def video_train(self, style_name='nsp',
                     epochs=50, temporal_weight=0.8, style_weight=100_000,
-                    feature_weight=1, content_weight=1):
+                    feature_weight=1, content_weight=1) -> None:
+        """
+        Trains the video network
+
+        :param style_name: the name of the style (used for saving and loading checkpoints)
+        :param epochs: how many epochs should the training go through
+        :param temporal_weight: the weight for the temporal loss
+        :param style_weight: the weight for the style loss
+        :param feature_weight: the weight for the feature loss
+        :param content_weight: the weight for the content loss
+        :return:
+        """
 
         tb_writer = get_tensorboard_writer(
             f'runs/video-style-transfer_{style_name}')
@@ -921,6 +1061,17 @@ class VideoTransformNet(ImageTransformNet):
     def process_video(self, video_path: str, style_name='nsp',
                       working_dir='workdir/',
                       out_dir='results/', fps=24.0):
+        """
+        Applies style to a single video, using pretrained weights. Note that the
+        weights must exist, if not an exception will be raised.
+
+        :param video_path: the path of the video to stylize
+        :param style_name: the name of the style to apply to the video. The weights for a video
+            transform model using said style must exist in `data/models/`
+        :param working_dir: directory where the transformed frames will be saved
+        :param out_dir: directory where the final transformed video will be saved
+        :param fps: the frames per second to use in the final video
+        """
 
         video_path = os.path.join(constants.PROJECT_ROOT_PATH, video_path)
         working_dir = os.path.join(constants.PROJECT_ROOT_PATH, working_dir)
@@ -984,7 +1135,13 @@ class VideoTransformNet(ImageTransformNet):
 
         video_writer = imageio.get_writer(final_path, fps=fps)
 
-        frame_files = sorted(os.listdir(working_dir))
+        frame_files = sorted(
+            os.listdir(working_dir),
+            # cast frame index to int when sorting so that we actually get
+            # the correct order
+            key=lambda x: int(x.split('.')[0])
+        )
+
         for frame_name in tqdm(frame_files):
             video_writer.append_data(np.array(Image.open(working_dir + frame_name)))
 
