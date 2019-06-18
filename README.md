@@ -9,6 +9,28 @@ And also of a network able to apply a style to a video, using our own `temporal 
 
 All of these are implemented in the `stransfer.network` module.
 
+
+## Running in Google Colab
+
+If you don't want to run this in your local PC then you can also run this project in Google Colab.
+
+See [this notebook](https://github.com/tupini07/StyleTransfer/blob/master/Colab_Style_Transfer.ipynb)
+for an example of how to clone this repository, download the COCO dataset, and install the dependencies
+in a Colab environment. Once everything is downloaded and installed you can use the commands
+provided by the command line interface as if you were in a normal terminal (see [How to use](https://github.com/tupini07/StyleTransfer#how-to-use)
+section for those). 
+
+The example notebook also has a button at the top which will automatically create for you a copy 
+of the example notebook in Colab.
+
+## Installing Dependencies
+
+You can use `pipenv` to create an environment for this project, with all the dependencies installed.
+
+If you don't know how to use _pipenv_ then just ensure you have `pipenv` installed, 
+clone this repository, `cd` into it, and run
+`pipenv install`. Then you can execute `pipenv shell` to activate the virtual environment.
+
 ## How to use
 
 The `stransfer` package provides a command line interface that exposes all of the functionality to the user. 
