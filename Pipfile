@@ -24,6 +24,9 @@ requests = "*"
 imageio = "*"
 imageio-ffmpeg = "*"
 Pillow = "*"
+sphinx_autodoc_typehints = "*"
+sphinx = "*"
+sphinx-click = "*"
 
 [requires]
 python_version = "3.7"

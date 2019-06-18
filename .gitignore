@@ -18,6 +18,7 @@ data/coco_dataset/images/*
 *.pth
 results/
 workdir/
+_build/
 
 # Distribution / packaging
 .Python

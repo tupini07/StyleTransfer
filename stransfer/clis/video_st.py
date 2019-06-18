@@ -9,12 +9,12 @@ LOGGER = c_logging.get_logger()
 
 
 @click.group()
-def cli():
+def video_st():
     """Video Style Transfer"""
     pass
 
 
-@cli.command()
+@video_st.command()
 @click.argument('style-image-path')
 @click.option('-e', '--epochs', default=50,
               help="How many epochs the training will take")
@@ -63,7 +63,7 @@ def train(style_image_path, epochs, batch_size, content_weight, style_weight, te
                     temporal_weight=temporal_weight)
 
 
-@cli.command()
+@video_st.command()
 @click.argument('video-path')
 @click.argument('style-name')
 @click.option('-o', '--out-dir', default='results/',

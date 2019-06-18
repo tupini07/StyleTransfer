@@ -16,7 +16,7 @@ LOGGER = c_logging.get_logger()
               help="The weight we will assign to the content loss during the optimization")
 @click.option('-sw', '--style-weight', default=1_000_000,
               help="The weight we will assign to the style loss during the optimization")
-def cli(style_image_path, content_image_path, out_name, steps, content_weight, style_weight):
+def gatys_st(style_image_path, content_image_path, out_name, steps, content_weight, style_weight):
     """
     Run the original Gatys style transfer (slow). Both `style-image` and
     `content-image` should be the paths to the image we want to take the content from
