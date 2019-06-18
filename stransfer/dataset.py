@@ -1,7 +1,17 @@
+"""
+This module holds functionality related to dataset management. Both for downloading
+and iterating on the dataset.
+
+In the project we use 2 datasets:
+
+- COCO (for training the fast image transform net)
+- Some public videos (for training the Video style transfer net)
+"""
+
 import json
 import os
 import random
-from typing import Tuple
+from typing import Tuple, List, Any, Generator
 
 import imageio
 import requests
@@ -14,16 +24,19 @@ from stransfer import c_logging, img_utils
 
 LOGGER = c_logging.get_logger()
 
+# Where we'll place our coco dataset
 BASE_COCO_PATH = 'data/coco_dataset/'
-IMAGE_FOLDER_PATH = BASE_COCO_PATH + 'images'
+IMAGE_FOLDER_PATH = os.path.join(BASE_COCO_PATH, 'images')
 
+# Where we'll place our video dataset
 VIDEO_DATA_PATH = 'data/video/'
 
 
-def download_from_url(url, dst):
+def download_from_url(url: str, dst: str) -> int:
     """
-    @param: url to download file
-    @param: dst place to put the file
+    :param url: to download file
+    :param dst: place to put the file
+    :return: the size of the downloaded file
     """
     file_size = int(requests.head(url).headers["Content-Length"])
     if os.path.exists(dst):
@@ -46,7 +59,14 @@ def download_from_url(url, dst):
     return file_size
 
 
-def download_list_of_urls(urls):
+def download_list_of_urls(urls: List[str], destination_folder=VIDEO_DATA_PATH) -> None:
+    """
+    Download a list of `urls` into `destination_folder`
+
+    :param urls: list of urls to download
+    :param destination_folder: the destination folder to which they will be downloaded
+    :return: None
+    """
     name_counter = 0
 
     for url in urls:
@@ -58,12 +78,17 @@ def download_list_of_urls(urls):
             filename = f'{name_counter}.mp4'
             name_counter += 1
 
-        filepath = VIDEO_DATA_PATH + filename
+        filepath = os.path.join(destination_folder, filename)
 
-        download_from_url(url, VIDEO_DATA_PATH + filename)
+        download_from_url(url, filepath)
 
 
-def download_videos_dataset():
+def download_videos_dataset() -> None:
+    """
+    Ensures that the videos in the video dataset have been downloaded
+
+    :return: None
+    """
     videos_to_download = [
         "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
         "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
@@ -73,18 +98,22 @@ def download_videos_dataset():
 
     os.makedirs(VIDEO_DATA_PATH, exist_ok=True)
 
+    # if we haven't downloaded all videos then just continue downloading
     if len(videos_to_download) != len(os.listdir(VIDEO_DATA_PATH)):
         download_list_of_urls(videos_to_download)
 
 
-def download_coco_images():
+def download_coco_images() -> None:
+    """
+    Ensures that the coco dataset is downloaded
+
+    :return: None
+    """
     json_file_path = os.path.join(BASE_COCO_PATH,
                                   'image_info_test2017.json')
 
     images_urls = [x['coco_url']
                    for x in json.load(open(json_file_path, 'r'))['images']]
-
-    n_images = len(images_urls)
 
     os.makedirs(IMAGE_FOLDER_PATH, exist_ok=True)
 
@@ -93,8 +122,15 @@ def download_coco_images():
         download_list_of_urls(images_urls)
 
 
-def make_batches(l, n):
-    """Yield successive n-sized chunks from l."""
+def make_batches(l: List[Any], n: int) -> List[List[Any]]:
+    """
+    Yield successive n-sized chunks from l.
+
+    :param l: list of elements we want to convert into batches
+    :param n: size of the batches
+    :return: list of batches of elements
+    """
+
     batches = []
     for i in range(0, len(l), n):
         batches.append(l[i:i + n])
@@ -103,7 +139,17 @@ def make_batches(l, n):
 
 
 class CocoDataset(Dataset):
+    """
+    An implementation of the torch Dataset class, specific for the
+    COCO dataset
+    """
+
     def __init__(self, images=None, image_limit=None):
+        """
+        :param images: list of paths of images. If not specified then the images
+            in `IMAGE_FOLDER_PATH` will be used.
+        :param image_limit: the maximum amount of images we want to use
+        """
 
         if images is None:
             self.images = os.listdir(IMAGE_FOLDER_PATH)
@@ -114,8 +160,8 @@ class CocoDataset(Dataset):
             try:
                 self.images = self.images[:image_limit]
             except IndexError:
-                LOGGER.warn('The provided image limit is larger than '
-                            'the actual image set. So will use the whole set')
+                LOGGER.warning('The provided image limit is larger than '
+                               'the actual image set. So will use the whole set')
 
     def __len__(self):
         return len(self.images)
@@ -128,9 +174,10 @@ class CocoDataset(Dataset):
 
             # if the image with the specified index doesn't have 3 channels
             # then we discard it
+            # In the coco dataset there are some greyscale images (only one channel)
             if image.shape[1] != 3:
-                LOGGER.warn('Discarding image with %d color channels',
-                            image.shape[1])
+                LOGGER.warning('Discarding image with %d color channels',
+                               image.shape[1])
 
                 self.images.pop(idx)
                 return self.__getitem__(idx)
@@ -139,7 +186,7 @@ class CocoDataset(Dataset):
                 return image
 
         # catch if file is not image or if idx is out of bounds
-        # TODO: change this to proper exceptions (don't leave generic Exception)
+        # TODO: might want to change this to catch proper exceptions (instead of generic Exception)
         except Exception:
             # not very pretty, but if above we're at the end of the
             # list then idx will be out of bounds. In that case just
@@ -151,7 +198,19 @@ class CocoDataset(Dataset):
 
 
 class VideoDataset:
+    """
+    Dataset wrapper for the video dataset
+    """
+
     def __init__(self, videos=None, data_limit=None, batch_size=3):
+        """
+        :param videos: list of paths of videos. If not specified then the videos
+            in `VIDEO_DATA_PATH` will be used.
+        :param data_limit: maximum amount of videos to use as part of the dataset
+        :param batch_size: the batch size we will split our videos in
+        """
+
+        # Ensure video have been downloaded
         download_videos_dataset()
 
         if videos is None:
@@ -163,13 +222,13 @@ class VideoDataset:
             try:
                 self.videos = self.videos[:data_limit]
             except IndexError:
-                LOGGER.warn('The provided video limit is larger than '
-                            'the actual amount of videos in the video set. So will use the whole set')
+                LOGGER.warning('The provided video limit is larger than '
+                               'the actual amount of videos in the video set. So will use the whole set')
 
         # set proper value for batch size
         if batch_size > len(self.videos):
-            LOGGER.warn('The batch size is larger than the amount of videos in the '
-                        f'video set. Will use complete set as a batch of size {len(self.videos)}')
+            LOGGER.warning('The batch size is larger than the amount of videos in the '
+                           f'video set. Will use complete set as a batch of size {len(self.videos)}')
             self.batch_size = len(self.videos)
         else:
             self.batch_size = batch_size
@@ -202,36 +261,48 @@ class VideoDataset:
 
     def __next__(self):
         try:
+            # we're iterating over batches of videos
+            # so each iteration we get the batch corresponding to
+            # `current_i`
             video_paths = self.video_paths[self.current_i]
         except IndexError:
+            # once we reach the end of the list we stop
+            # iteration
             self.current_i = 0
             raise StopIteration
 
         self.current_i += 1
+
+        # for each video in the batch we return a video reader for said video
         return [imageio.get_reader(vp) for vp in video_paths]
 
 
-def iterate_on_video_batches(batch):
-    # we limit the maxmium amount of frames
-    # so that we don't really process of the video
-    # we limit to 40 seconds (and suppose that the
-    # videos are 24 FPS)
-    max_frames = 90 * 24
-    counter = 0
-    try:
+def iterate_on_video_batches(batch: List[imageio.core.format.Format.Reader],
+                             max_frames=90 * 24) -> Generator[torch.Tensor, None, None]:
+    """
+    Generator that, given a list of video readers, will yield
+    at each iteration a list composed of one frame from each video.
 
-        while True:
-            if counter >= max_frames:
-                break
+    :param batch: batch of video readers we want to iterate on
+    :param max_frames: the maximum number of frames we want to yield. By default we limit
+        to 90 seconds which is the same as 90*24 if the videos are 24 FPS
+    """
+
+    try:
+        for _ in range(max_frames):
 
             next_data = []
-            for tt in batch:
-                frame = tt.get_next_data()
+            for video_reader in batch:
+                frame = video_reader.get_next_data()
+
+                # convert image to tensor
                 image = Image.fromarray(frame)
                 tensor = img_utils.image_loader_transform(image)
+
+                # add to data we'll yield for the current batch
                 next_data.append(tensor)
 
-            counter += 1
+            # concatenate frames across their batch dimension and yield
             yield torch.cat(next_data, dim=0)
 
     # when one of the videos finishes imageio will
@@ -241,7 +312,18 @@ def iterate_on_video_batches(batch):
 
 
 def get_coco_loader(batch_size=4, test_split=0.10, test_limit=None, train_limit=None) -> Tuple[DataLoader, DataLoader]:
-    # ensure that we have cocoimages
+    """
+    Sets up and returns the dataloaders for the coco dataset
+
+    :param batch_size: the amount of elements we want per batch
+    :param test_split: the percentage of items from the whole set that we want to be part
+        of the test set
+    :param test_limit: the maximum amount of items we want in our test set
+    :param train_limit: the maximum amount of items we want in the training set
+    :return: the test set dataloader, and the train set dataloader
+    """
+
+    # ensure that we have coco images
     download_coco_images()
 
     all_images = os.listdir(IMAGE_FOLDER_PATH)

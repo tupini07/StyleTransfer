@@ -1,3 +1,8 @@
+"""
+This module contains functionality for logging.
+It mainly configures the log level and a handler
+so that logging can coexist with the `tqdm` progress bar.
+"""
 import logging
 import os
 
@@ -5,16 +10,21 @@ import tqdm
 
 from stransfer import constants
 
-LOGGER = logging.getLogger('StyleTransfer')
-LOGGER.setLevel(logging.INFO)
-LOGGER.handlers = []
+# Setup default logger for the application
+_LOGGER = logging.getLogger('StyleTransfer')
+
+# Set logging level
+_LOGGER.setLevel(logging.INFO)
+
+# clear handlers
+_LOGGER.handlers = []
 
 LOGGER_FORMATTER = logging.Formatter(
     '%(asctime)s [%(levelname)s] %(module)s.%(funcName)s #%(lineno)d - %(message)s'
 )
 
 
-class TqdmLoggingHandler (logging.StreamHandler):
+class TqdmLoggingHandler(logging.StreamHandler):
     """
     Custom logging handler. This ensures that TQDM
     progress bars always stay at the bottom of the
@@ -41,14 +51,18 @@ class TqdmLoggingHandler (logging.StreamHandler):
 tqdm_handler = TqdmLoggingHandler()
 tqdm_handler.setFormatter(LOGGER_FORMATTER)
 
-
+# we need to ensure that the runs_path exists since there is
+# where we'll save a log file of the execution
 os.makedirs(constants.RUNS_PATH, exist_ok=True)
 file_handler = logging.FileHandler(constants.LOG_PATH, mode='w+')
 file_handler.setFormatter(LOGGER_FORMATTER)
 
-LOGGER.addHandler(tqdm_handler)
-LOGGER.addHandler(file_handler)
+_LOGGER.addHandler(tqdm_handler)
+_LOGGER.addHandler(file_handler)
 
 
 def get_logger() -> logging.Logger:
-    return LOGGER
+    """
+    :return: the global loader for the application
+    """
+    return _LOGGER

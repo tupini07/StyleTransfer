@@ -1,3 +1,8 @@
+"""
+This module holds the implementation of all the networks, their losses, and
+their components
+"""
+
 import copy
 import os
 import shutil
