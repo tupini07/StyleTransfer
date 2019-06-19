@@ -56,7 +56,7 @@ html_theme_options = {
     # Toc options
     'collapse_navigation': False,
     'sticky_navigation': True,
-    'navigation_depth': 3,
+    'navigation_depth': 1,
 }
 
 html_context = {
