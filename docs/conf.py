@@ -57,9 +57,16 @@ html_theme_options = {
     'collapse_navigation': False,
     'sticky_navigation': True,
     'navigation_depth': 3,
-    'github_url': 'https://github.com/tupini07/StyleTransfer',
-
 }
+
+html_context = {
+    "display_github": True, # Integrate GitHub
+    "github_user": "tupini07", # Username
+    "github_repo": "StyleTransfer", # Repo name
+    "github_version": "master", # Version
+    "conf_py_path": "/docs/", # Path in the checkout to the docs root
+}
+
 
 
 # Add any paths that contain custom static files (such as style sheets) here,
