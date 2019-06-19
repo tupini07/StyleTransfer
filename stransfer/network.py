@@ -201,8 +201,9 @@ class FeatureReconstructionLoss(nn.Module):
 class StyleNetwork(nn.Module):
     """
     Implementation of the StyleNetwork as defined in
-        A Neural Algorithm of Artistic Style - Gatys (2015)
-        https://arxiv.org/abs/1508.06576
+
+    A Neural Algorithm of Artistic Style - Gatys (2015)
+    https://arxiv.org/abs/1508.06576
     """
 
     content_layers = [  # layers from where image content will be taken
@@ -499,8 +500,9 @@ class ImageTransformNet(nn.Sequential):
     """
     This the implementation of the fast style transform, image transform
     network, as defined in:
-        Perceptual Losses for Real-Time Style Transfer and Super-Resolution
-        https://arxiv.org/abs/1603.08155
+
+    Perceptual Losses for Real-Time Style Transfer and Super-Resolution
+    https://arxiv.org/abs/1603.08155
     """
     def __init__(self, style_image: torch.Tensor, batch_size=4):
         """
