@@ -5,7 +5,7 @@ python:
 
 install:
   - pip install pipenv
-  - pipenv install
+  - pipenv install --skip-lock
 
 script:
     - pipienv run travis-sphinx build --source docs

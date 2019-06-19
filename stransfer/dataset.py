@@ -140,7 +140,7 @@ def make_batches(l: List[Any], n: int) -> List[List[Any]]:
 
 class CocoDataset(Dataset):
     """
-    An implementation of the torch Dataset class, specific for the
+    An implementation of the :class:`torch.utils.data.Dataset` class, specific for the
     COCO dataset
     """
 

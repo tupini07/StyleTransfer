@@ -1,6 +1,6 @@
 # Style Transfer
 
-In this repository you'll find the implementation of 
+In this repository you'll find a PyTorch implementation of the following papers:
 
 - [A Neural Algorithm of Artistic Style](https://arxiv.org/abs/1508.06576)
 - [Perceptual Losses for Real-Time Style Transfer and Super-Resolution](https://arxiv.org/abs/1603.08155)
