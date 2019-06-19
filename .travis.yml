@@ -8,7 +8,7 @@ install:
   - pipenv install
 
 before_script:
-  - mkdir -p docs/static
+  - mkdir -p /home/travis/build/tupini07/StyleTransfer/docs/_static
 
 script:
   - pipenv run travis-sphinx build --source docs
