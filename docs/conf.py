@@ -54,9 +54,11 @@ html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
     'style_external_links': True,
     # Toc options
-    'collapse_navigation': True,
+    'collapse_navigation': False,
     'sticky_navigation': True,
-    'navigation_depth': 2,
+    'navigation_depth': 3,
+    'github_url': 'https://github.com/tupini07/StyleTransfer',
+
 }
 
 
@@ -70,4 +72,5 @@ html_static_path = ['_static']
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'pytorch': ('https://pytorch.org/docs/stable', None),
+    'imageio': ('https://imageio.readthedocs.io/en/stable', None),
 }
