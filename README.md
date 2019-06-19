@@ -1,5 +1,11 @@
 # Style Transfer
 
+<div style="float: right;">
+
+[![Build Status](https://travis-ci.org/tupini07/StyleTransfer.svg?branch=master)](https://travis-ci.org/tupini07/StyleTransfer)
+
+</div>
+
 In this repository you'll find a PyTorch implementation of the following papers:
 
 - [A Neural Algorithm of Artistic Style](https://arxiv.org/abs/1508.06576)
