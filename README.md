@@ -1,6 +1,6 @@
 # Style Transfer
 
-[![docs](https://travis-ci.org/tupini07/StyleTransfer.svg?branch=master)](https://tupini07.github.io/StyleTransfer/index.html)
+[![Build Status](https://travis-ci.org/tupini07/StyleTransfer.svg?branch=master)](https://tupini07.github.io/StyleTransfer/index.html)
 
 In this repository you'll find a PyTorch implementation of the following papers:
 

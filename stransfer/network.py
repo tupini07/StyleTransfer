@@ -167,7 +167,10 @@ class ContentLoss(nn.Module):
 class FeatureReconstructionLoss(nn.Module):
     """
     Implementation of the feature reconstruction loss.
-    NOTE: this is currently not used
+
+    ..note::
+        this loss is currently not used since it doesn't seem
+        to provide much improvement over the normal :class:`.ContentLoss`
     """
 
     def __init__(self, target: torch.Tensor):
@@ -182,8 +185,7 @@ class FeatureReconstructionLoss(nn.Module):
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         """
-        .. note::
-            not used
+        Get the feature loss of `input` with respect to the `target`
         """
 
         # Content loss is just the per pixel distance between an input and
@@ -229,7 +231,7 @@ class StyleNetwork(nn.Module):
         'ReLU_4',
     ]
 
-    def __init__(self, style_image: torch.Tensor, content_image=None):
+    def __init__(self, style_image: torch.Tensor, content_image: torch.Tensor = None):
         super().__init__()
 
         self.content_losses = []
