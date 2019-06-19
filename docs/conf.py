@@ -31,7 +31,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx_autodoc_typehints',
     'sphinx.ext.intersphinx',
-    'sphinx_click.ext'
+    'sphinx_click.ext',
+    'sphinx.ext.viewcode',
 ]
 
 
