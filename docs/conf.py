@@ -82,4 +82,5 @@ intersphinx_mapping = {
     'pytorch': ('https://pytorch.org/docs/stable', None),
     'imageio': ('https://imageio.readthedocs.io/en/stable', None),
     'pil': ('https://pillow.readthedocs.io/en/stable', None),
+    'tbx': ('https://tensorboardx.readthedocs.io/en/latest', None),
 }
