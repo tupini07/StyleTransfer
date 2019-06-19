@@ -8,7 +8,7 @@ install:
   - pipenv install --skip-lock
 
 script:
-    - pipienv run travis-sphinx build --source docs
+    - pipenv run travis-sphinx build --source docs
 
 after_success:
-    - pipienv run travis-sphinx deploy
+    - pipenv run travis-sphinx deploy
