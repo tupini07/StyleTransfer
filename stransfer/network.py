@@ -3,7 +3,6 @@ This module holds the implementation of all the networks, their losses, and
 their components
 """
 
-import copy
 import os
 import shutil
 
@@ -80,14 +79,12 @@ def _load_latest_model_weigths(model_name: str,
 class StyleLoss(nn.Module):
     """
     Implementation of the style loss
+
+    :param target: the tensor representing the style image we want to
+        take as reference during training
     """
 
     def __init__(self, target: torch.Tensor):
-        """
-        :param target: the tensor representing the style image we want to
-            take as reference during training
-        """
-
         super().__init__()
 
         self.set_target(target)
@@ -137,13 +134,12 @@ class StyleLoss(nn.Module):
 class ContentLoss(nn.Module):
     """
     Implementation of the content loss
+
+    :param target: the target image we want to use to calculate the content
+        loss
     """
 
     def __init__(self, target: torch.Tensor):
-        """
-        :param target: the target image we want to use to calculate the content
-            loss
-        """
         super().__init__()
 
         # Here the target is the conv layer which we're taking as reference
@@ -185,6 +181,11 @@ class FeatureReconstructionLoss(nn.Module):
         self.target = target.detach()
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
+        """
+        .. note::
+            not used
+        """
+
         # Content loss is just the per pixel distance between an input and
         # the target
         l2_norm = F.mse_loss(input, self.target)
@@ -202,8 +203,10 @@ class StyleNetwork(nn.Module):
     """
     Implementation of the StyleNetwork as defined in
 
-    A Neural Algorithm of Artistic Style - Gatys (2015)
-    https://arxiv.org/abs/1508.06576
+    `A Neural Algorithm of Artistic Style - Gatys (2015) <https://arxiv.org/abs/1508.06576>`_
+
+    :param style_image: tensor of the image we want to use as a source for the style
+    :param content_image: tensor of the image we want to use as the source for the content
     """
 
     content_layers = [  # layers from where image content will be taken
@@ -226,16 +229,16 @@ class StyleNetwork(nn.Module):
         'ReLU_4',
     ]
 
-    def __init__(self, style_image: torch.Tensor, content_image=torch.zeros([1, 3, 256, 256])):
-        """
-        :param style_image: tensor of the image we want to use as a source for the style
-        :param content_image: tensor of the image we want to use as the source for the content
-        """
+    def __init__(self, style_image: torch.Tensor, content_image=None):
         super().__init__()
 
         self.content_losses = []
         self.style_losses = []
         self.feature_losses = []
+
+        if content_image is None:
+            # set a dummy content image
+            content_image = torch.zeros([1, 3, 256, 256])
 
         # we use the vgg19 net to get the losses during training
         vgg = (torchvision.models.vgg19(pretrained=True)
@@ -358,7 +361,7 @@ class StyleNetwork(nn.Module):
 
         return weight * torch.stack([x[0].loss for x in self.style_losses]).sum()
 
-    def forward(self, input_image: torch.Tensor, content_image=None, style_image=None):
+    def forward(self, input_image: torch.Tensor, content_image=None, style_image=None) -> None:
         """
         Given an input image pass it through all layers in the network
 
@@ -477,7 +480,12 @@ class ResidualBlock(nn.Module):
 
         self.insn2 = nn.InstanceNorm2d(out_channels, affine=True)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Given a tensor input, pass it through the residual block, and
+        return the output.
+        """
+
         # architecure of the residual block was taken from
         # Gross and Wilber (Training and investigating residual nets)
         # http://torch.ch/blog/2016/02/04/resnets.html
@@ -501,14 +509,13 @@ class ImageTransformNet(nn.Sequential):
     This the implementation of the fast style transform, image transform
     network, as defined in:
 
-    Perceptual Losses for Real-Time Style Transfer and Super-Resolution
-    https://arxiv.org/abs/1603.08155
+    `Perceptual Losses for Real-Time Style Transfer and Super-Resolution <https://arxiv.org/abs/1603.08155>`_
+
+    :param style_image: The image we want to use as as the style reference
+    :param batch_size: the size of the batch
     """
+
     def __init__(self, style_image: torch.Tensor, batch_size=4):
-        """
-        :param style_image: The image we want to use as as the style reference
-        :param batch_size: the size of the batch
-        """
         super().__init__(
 
             # Initial convolutional layers
@@ -826,17 +833,16 @@ class ImageTransformNet(nn.Sequential):
 class VideoTransformNet(ImageTransformNet):
     """
     Implementation of the video transform net.
+
+    :param style_image: image we'll use as style reference
+    :param batch_size: size of the batch
+    :param fast_transfer_dict: state dict from a pretrained 'fast style network'. It
+        allows us to start training the video model from this, which allows to
+        bootstrap training. It is recommended to do this since the current video set
+        is not very big.
     """
 
     def __init__(self, style_image: torch.Tensor, batch_size=4, fast_transfer_dict=None):
-        """
-        :param style_image: image we'll use as style reference
-        :param batch_size: size of the batch
-        :param fast_transfer_dict: state dict from a pretrained 'fast style network'. It
-            allows us to start training the video model from this, which allows to
-            bootstrap training. It is recommended to do this since the current video set
-            is not very big.
-        """
         super().__init__(style_image, batch_size)
 
         self[0] = nn.Conv2d(in_channels=6,

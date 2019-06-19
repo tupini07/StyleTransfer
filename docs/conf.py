@@ -81,4 +81,5 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'pytorch': ('https://pytorch.org/docs/stable', None),
     'imageio': ('https://imageio.readthedocs.io/en/stable', None),
+    'pil': ('https://pillow.readthedocs.io/en/stable', None),
 }
