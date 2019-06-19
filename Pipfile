@@ -27,6 +27,7 @@ Pillow = "*"
 sphinx_autodoc_typehints = "*"
 sphinx = "*"
 sphinx-click = "*"
+travis-sphinx = "*"
 
 [requires]
 python_version = "3.7"
