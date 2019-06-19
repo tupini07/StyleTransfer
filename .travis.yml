@@ -7,8 +7,11 @@ install:
   - pip install pipenv
   - pipenv install
 
+before_script:
+  - mkdir -p docs/static
+
 script:
-    - pipenv run travis-sphinx build --source docs
+  - pipenv run travis-sphinx build --source docs
 
 after_success:
-    - pipenv run travis-sphinx deploy
+  - pipenv run travis-sphinx deploy
