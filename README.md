@@ -11,6 +11,7 @@ And also of a network able to apply a style to a video, using our own `temporal 
 
 All of these are implemented in the `stransfer.network` module.
 
+Documentation of each module and their members can be found [here](https://tupini07.github.io/StyleTransfer/index.html)
 
 ## Running in Google Colab
 
@@ -46,6 +47,8 @@ python -m stransfer <group name> <task name>
 To see which _groups_ are available run `python -m stransfer`. And to see which tasks are available in each group run `python -m stranfer <group name> --help` (replacing `<group name>` with the name of the group). 
 
 To see the description of each task you can do `python -m stransfer <group name> <task name> --help`.
+
+For a deeper explanation of each group/task you can also check [the respective documentation page](https://tupini07.github.io/StyleTransfer/terminal_interface.html)
 
 ### Group names and their tasks
 
