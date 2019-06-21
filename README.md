@@ -48,7 +48,7 @@ To see which _groups_ are available run `python -m stransfer`. And to see which 
 
 To see the description of each task you can do `python -m stransfer <group name> <task name> --help`.
 
-For a deeper explanation of each group/task you can also check [the respective documentation page](https://tupini07.github.io/StyleTransfer/terminal_interface.html)
+For a more detailed explanation of each group/task (and examples) you can also check [the respective documentation page](https://tupini07.github.io/StyleTransfer/terminal_interface.html)
 
 ### Group names and their tasks
 
