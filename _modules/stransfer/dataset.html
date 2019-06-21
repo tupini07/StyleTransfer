@@ -1,0 +1,552 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>stransfer.dataset &mdash; StyleTransfer  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> StyleTransfer
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Modules:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../terminal_interface.html">Terminal Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../network_module.html">Network Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dataset_module.html">Dataset Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../img_utils.html">Image Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../logging_module.html">Logging Module</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">StyleTransfer</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content style-external-links">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>stransfer.dataset</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for stransfer.dataset</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module holds functionality related to dataset management. Both for downloading</span>
+<span class="sd">and iterating on the dataset.</span>
+
+<span class="sd">In the project we use 2 datasets:</span>
+
+<span class="sd">- COCO (for training the fast image transform net)</span>
+<span class="sd">- Some public videos (for training the Video style transfer net)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Generator</span>
+
+<span class="kn">import</span> <span class="nn">imageio</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="k">import</span> <span class="n">Image</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="k">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">Dataset</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="k">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span> <span class="nn">stransfer</span> <span class="k">import</span> <span class="n">c_logging</span><span class="p">,</span> <span class="n">img_utils</span>
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">c_logging</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
+
+<span class="c1"># Where we&#39;ll place our coco dataset</span>
+<span class="n">BASE_COCO_PATH</span> <span class="o">=</span> <span class="s1">&#39;data/coco_dataset/&#39;</span>
+<span class="n">IMAGE_FOLDER_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">BASE_COCO_PATH</span><span class="p">,</span> <span class="s1">&#39;images&#39;</span><span class="p">)</span>
+
+<span class="c1"># Where we&#39;ll place our video dataset</span>
+<span class="n">VIDEO_DATA_PATH</span> <span class="o">=</span> <span class="s1">&#39;data/video/&#39;</span>
+
+
+<div class="viewcode-block" id="download_from_url"><a class="viewcode-back" href="../../dataset_module.html#stransfer.dataset.download_from_url">[docs]</a><span class="k">def</span> <span class="nf">download_from_url</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dst</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :param url: to download file</span>
+<span class="sd">    :param dst: place to put the file</span>
+<span class="sd">    :return: the size of the downloaded file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">file_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dst</span><span class="p">):</span>
+        <span class="n">first_byte</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">first_byte</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">first_byte</span> <span class="o">&gt;=</span> <span class="n">file_size</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">file_size</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Range&quot;</span><span class="p">:</span> <span class="s2">&quot;bytes=</span><span class="si">%s</span><span class="s2">-</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">first_byte</span><span class="p">,</span> <span class="n">file_size</span><span class="p">)}</span>
+    <span class="n">pbar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span>
+        <span class="n">total</span><span class="o">=</span><span class="n">file_size</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="n">first_byte</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="n">unit_scale</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="n">url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">req</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">header</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">with</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="s1">&#39;ab&#39;</span><span class="p">))</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">req</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">chunk</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
+    <span class="n">pbar</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">file_size</span></div>
+
+
+<div class="viewcode-block" id="download_list_of_urls"><a class="viewcode-back" href="../../dataset_module.html#stransfer.dataset.download_list_of_urls">[docs]</a><span class="k">def</span> <span class="nf">download_list_of_urls</span><span class="p">(</span><span class="n">urls</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">destination_folder</span><span class="o">=</span><span class="n">VIDEO_DATA_PATH</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Download a list of `urls` into `destination_folder`</span>
+
+<span class="sd">    :param urls: list of urls to download</span>
+<span class="sd">    :param destination_folder: the destination folder to which they will be downloaded</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name_counter</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">url</span> <span class="ow">in</span> <span class="n">urls</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">20</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{name_counter}</span><span class="s1">.mp4&#39;</span>
+            <span class="n">name_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">destination_folder</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+        <span class="n">download_from_url</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">filepath</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="download_videos_dataset"><a class="viewcode-back" href="../../dataset_module.html#stransfer.dataset.download_videos_dataset">[docs]</a><span class="k">def</span> <span class="nf">download_videos_dataset</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ensures that the videos in the video dataset have been downloaded</span>
+
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">videos_to_download</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4&quot;</span>
+    <span class="p">]</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">VIDEO_DATA_PATH</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># if we haven&#39;t downloaded all videos then just continue downloading</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">videos_to_download</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">VIDEO_DATA_PATH</span><span class="p">)):</span>
+        <span class="n">download_list_of_urls</span><span class="p">(</span><span class="n">videos_to_download</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="download_coco_images"><a class="viewcode-back" href="../../dataset_module.html#stransfer.dataset.download_coco_images">[docs]</a><span class="k">def</span> <span class="nf">download_coco_images</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ensures that the coco dataset is downloaded</span>
+
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">json_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">BASE_COCO_PATH</span><span class="p">,</span>
+                                  <span class="s1">&#39;image_info_test2017.json&#39;</span><span class="p">)</span>
+
+    <span class="n">images_urls</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;coco_url&#39;</span><span class="p">]</span>
+                   <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">json_file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">))[</span><span class="s1">&#39;images&#39;</span><span class="p">]]</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">IMAGE_FOLDER_PATH</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># if we haven&#39;t downloaded all images then just continue downloading</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">images_urls</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">IMAGE_FOLDER_PATH</span><span class="p">)):</span>
+        <span class="n">download_list_of_urls</span><span class="p">(</span><span class="n">images_urls</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="make_batches"><a class="viewcode-back" href="../../dataset_module.html#stransfer.dataset.make_batches">[docs]</a><span class="k">def</span> <span class="nf">make_batches</span><span class="p">(</span><span class="n">l</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Yield successive n-sized chunks from l.</span>
+
+<span class="sd">    :param l: list of elements we want to convert into batches</span>
+<span class="sd">    :param n: size of the batches</span>
+<span class="sd">    :return: list of batches of elements</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">batches</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">),</span> <span class="n">n</span><span class="p">):</span>
+        <span class="n">batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">n</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">batches</span></div>
+
+
+<div class="viewcode-block" id="CocoDataset"><a class="viewcode-back" href="../../dataset_module.html#stransfer.dataset.CocoDataset">[docs]</a><span class="k">class</span> <span class="nc">CocoDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    An implementation of the :class:`torch.utils.data.Dataset` class, specific for the</span>
+<span class="sd">    COCO dataset</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_limit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param images: list of paths of images. If not specified then the images</span>
+<span class="sd">            in `IMAGE_FOLDER_PATH` will be used.</span>
+<span class="sd">        :param image_limit: the maximum amount of images we want to use</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">images</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">IMAGE_FOLDER_PATH</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="n">images</span>
+
+        <span class="k">if</span> <span class="n">image_limit</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[:</span><span class="n">image_limit</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;The provided image limit is larger than &#39;</span>
+                               <span class="s1">&#39;the actual image set. So will use the whole set&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">img_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">IMAGE_FOLDER_PATH</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">img_utils</span><span class="o">.</span><span class="n">image_loader</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span>
+
+            <span class="c1"># if the image with the specified index doesn&#39;t have 3 channels</span>
+            <span class="c1"># then we discard it</span>
+            <span class="c1"># In the coco dataset there are some greyscale images (only one channel)</span>
+            <span class="k">if</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Discarding image with </span><span class="si">%d</span><span class="s1"> color channels&#39;</span><span class="p">,</span>
+                               <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">image</span>
+
+        <span class="c1"># catch if file is not image or if idx is out of bounds</span>
+        <span class="c1"># TODO: might want to change this to catch proper exceptions (instead of generic Exception)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="c1"># not very pretty, but if above we&#39;re at the end of the</span>
+            <span class="c1"># list then idx will be out of bounds. In that case just</span>
+            <span class="c1"># return a random image from those that do exist</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">)</span>
+            <span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="VideoDataset"><a class="viewcode-back" href="../../dataset_module.html#stransfer.dataset.VideoDataset">[docs]</a><span class="k">class</span> <span class="nc">VideoDataset</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dataset wrapper for the video dataset</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">videos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data_limit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param videos: list of paths of videos. If not specified then the videos</span>
+<span class="sd">            in `VIDEO_DATA_PATH` will be used.</span>
+<span class="sd">        :param data_limit: maximum amount of videos to use as part of the dataset</span>
+<span class="sd">        :param batch_size: the batch size we will split our videos in</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Ensure video have been downloaded</span>
+        <span class="n">download_videos_dataset</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">videos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">videos</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">VIDEO_DATA_PATH</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">videos</span> <span class="o">=</span> <span class="n">videos</span>
+
+        <span class="k">if</span> <span class="n">data_limit</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">videos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">videos</span><span class="p">[:</span><span class="n">data_limit</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;The provided video limit is larger than &#39;</span>
+                               <span class="s1">&#39;the actual amount of videos in the video set. So will use the whole set&#39;</span><span class="p">)</span>
+
+        <span class="c1"># set proper value for batch size</span>
+        <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">videos</span><span class="p">):</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;The batch size is larger than the amount of videos in the &#39;</span>
+                           <span class="n">f</span><span class="s1">&#39;video set. Will use complete set as a batch of size {len(self.videos)}&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">videos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+
+        <span class="c1"># create video loaders for each video</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_paths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">vid_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">videos</span><span class="p">:</span>
+            <span class="n">vid_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">VIDEO_DATA_PATH</span><span class="p">,</span> <span class="n">vid_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">video_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">vid_path</span>
+            <span class="p">)</span>
+
+        <span class="c1"># separate video loaders into batches</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_paths</span> <span class="o">=</span> <span class="n">make_batches</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">video_paths</span><span class="p">,</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
+
+        <span class="c1"># Throw away last batch if it is not the perfect batchsize length</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">video_paths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">video_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_paths</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># vars for iterator management</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_i</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># number of batches</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">video_paths</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># we&#39;re iterating over batches of videos</span>
+            <span class="c1"># so each iteration we get the batch corresponding to</span>
+            <span class="c1"># `current_i`</span>
+            <span class="n">video_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_paths</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_i</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="c1"># once we reach the end of the list we stop</span>
+            <span class="c1"># iteration</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_i</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># for each video in the batch we return a video reader for said video</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">imageio</span><span class="o">.</span><span class="n">get_reader</span><span class="p">(</span><span class="n">vp</span><span class="p">)</span> <span class="k">for</span> <span class="n">vp</span> <span class="ow">in</span> <span class="n">video_paths</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="iterate_on_video_batches"><a class="viewcode-back" href="../../dataset_module.html#stransfer.dataset.iterate_on_video_batches">[docs]</a><span class="k">def</span> <span class="nf">iterate_on_video_batches</span><span class="p">(</span><span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">imageio</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">Format</span><span class="o">.</span><span class="n">Reader</span><span class="p">],</span>
+                             <span class="n">max_frames</span><span class="o">=</span><span class="mi">90</span> <span class="o">*</span> <span class="mi">24</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generator that, given a list of video readers, will yield</span>
+<span class="sd">    at each iteration a list composed of one frame from each video.</span>
+
+<span class="sd">    :param batch: batch of video readers we want to iterate on</span>
+<span class="sd">    :param max_frames: the maximum number of frames we want to yield. By default we limit</span>
+<span class="sd">        to 90 seconds which is the same as 90*24 if the videos are 24 FPS</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_frames</span><span class="p">):</span>
+
+            <span class="n">next_data</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">video_reader</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
+                <span class="n">frame</span> <span class="o">=</span> <span class="n">video_reader</span><span class="o">.</span><span class="n">get_next_data</span><span class="p">()</span>
+
+                <span class="c1"># convert image to tensor</span>
+                <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+                <span class="n">tensor</span> <span class="o">=</span> <span class="n">img_utils</span><span class="o">.</span><span class="n">image_loader_transform</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+
+                <span class="c1"># add to data we&#39;ll yield for the current batch</span>
+                <span class="n">next_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
+
+            <span class="c1"># concatenate frames across their batch dimension and yield</span>
+            <span class="k">yield</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">next_data</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># when one of the videos finishes imageio will</span>
+    <span class="c1"># throw an IndexError when getting `get_next_data`</span>
+    <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="get_coco_loader"><a class="viewcode-back" href="../../dataset_module.html#stransfer.dataset.get_coco_loader">[docs]</a><span class="k">def</span> <span class="nf">get_coco_loader</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">test_split</span><span class="o">=</span><span class="mf">0.10</span><span class="p">,</span> <span class="n">test_limit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">train_limit</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DataLoader</span><span class="p">,</span> <span class="n">DataLoader</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sets up and returns the dataloaders for the coco dataset</span>
+
+<span class="sd">    :param batch_size: the amount of elements we want per batch</span>
+<span class="sd">    :param test_split: the percentage of items from the whole set that we want to be part</span>
+<span class="sd">        of the test set</span>
+<span class="sd">    :param test_limit: the maximum amount of items we want in our test set</span>
+<span class="sd">    :param train_limit: the maximum amount of items we want in the training set</span>
+<span class="sd">    :return: the test set dataloader, and the train set dataloader</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># ensure that we have coco images</span>
+    <span class="n">download_coco_images</span><span class="p">()</span>
+
+    <span class="n">all_images</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">IMAGE_FOLDER_PATH</span><span class="p">)</span>
+    <span class="n">split_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">all_images</span><span class="p">)</span> <span class="o">*</span> <span class="n">test_split</span><span class="p">)</span>
+
+    <span class="n">test_images</span> <span class="o">=</span> <span class="n">all_images</span><span class="p">[:</span><span class="n">split_idx</span><span class="p">]</span>
+    <span class="n">train_images</span> <span class="o">=</span> <span class="n">all_images</span><span class="p">[</span><span class="n">split_idx</span><span class="p">:]</span>
+
+    <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading train and test set&#39;</span><span class="p">)</span>
+    <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Train set has </span><span class="si">%d</span><span class="s1"> entries&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_images</span><span class="p">))</span>
+    <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Test set has </span><span class="si">%d</span><span class="s1"> entries&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_images</span><span class="p">))</span>
+
+    <span class="n">test_dataset</span> <span class="o">=</span> <span class="n">CocoDataset</span><span class="p">(</span><span class="n">images</span><span class="o">=</span><span class="n">test_images</span><span class="p">,</span>
+                               <span class="n">image_limit</span><span class="o">=</span><span class="n">test_limit</span><span class="p">)</span>
+    <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">CocoDataset</span><span class="p">(</span><span class="n">images</span><span class="o">=</span><span class="n">train_images</span><span class="p">,</span>
+                                <span class="n">image_limit</span><span class="o">=</span><span class="n">train_limit</span><span class="p">)</span>
+
+    <span class="n">test_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span>
+        <span class="n">test_dataset</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">num_workers</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">drop_last</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+    <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span>
+        <span class="n">train_dataset</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">num_workers</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">drop_last</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">test_loader</span><span class="p">,</span> <span class="n">train_loader</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Andrea Tupini, Mario Berti
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,290 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Image Utilities &mdash; StyleTransfer  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Logging Module" href="logging_module.html" />
+    <link rel="prev" title="Dataset Module" href="dataset_module.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> StyleTransfer
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Modules:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="terminal_interface.html">Terminal Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network_module.html">Network Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset_module.html">Dataset Module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Image Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging_module.html">Logging Module</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">StyleTransfer</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content style-external-links">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Image Utilities</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/tupini07/StyleTransfer/blob/master/docs/img_utils.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-stransfer.img_utils">
+<span id="image-utilities"></span><h1>Image Utilities<a class="headerlink" href="#module-stransfer.img_utils" title="Permalink to this headline">¶</a></h1>
+<p>This module holds functionality related to loading and saving images.</p>
+<dl class="function">
+<dt id="stransfer.img_utils.concat_images">
+<code class="sig-prename descclassname">stransfer.img_utils.</code><code class="sig-name descname">concat_images</code><span class="sig-paren">(</span><em class="sig-param">im1</em>, <em class="sig-param">im2</em>, <em class="sig-param">dim=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/img_utils.html#concat_images"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.img_utils.concat_images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple wrapper function that concatenates two images
+along a given dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>im1</strong> – </p></li>
+<li><p><strong>im2</strong> – </p></li>
+<li><p><strong>dim</strong> – the dimension we want to concatenate across. By default it is
+the third dimension (width if images only have 3 dims)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>tensor representing concatenated image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="stransfer.img_utils.image_loader">
+<code class="sig-prename descclassname">stransfer.img_utils.</code><code class="sig-name descname">image_loader</code><span class="sig-paren">(</span><em class="sig-param">image_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/img_utils.html#image_loader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.img_utils.image_loader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads an image from <cite>image_path</cite>, and transforms it into a
+torch.Tensor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>image_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – path to the image that will be loaded</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>tensor representing the image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="stransfer.img_utils.image_loader_transform">
+<code class="sig-prename descclassname">stransfer.img_utils.</code><code class="sig-name descname">image_loader_transform</code><span class="sig-paren">(</span><em class="sig-param">image</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/img_utils.html#image_loader_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.img_utils.image_loader_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform a PIL.Image instance into a torch.Tensor one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>image</strong> (<em>&lt;module 'PIL.Image' from '/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/PIL/Image.py'&gt;</em>) – image to transform</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>torch.Tensor representing the image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="stransfer.img_utils.imshow">
+<code class="sig-prename descclassname">stransfer.img_utils.</code><code class="sig-name descname">imshow</code><span class="sig-paren">(</span><em class="sig-param">image_tensor</em>, <em class="sig-param">ground_truth_image=None</em>, <em class="sig-param">denormalize=True</em>, <em class="sig-param">path='out.bmp'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/img_utils.html#imshow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.img_utils.imshow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Utility function to save an input image tensor to disk.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_tensor</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a>) – the tensor representing the image to be saved</p></li>
+<li><p><strong>ground_truth_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.7)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a>]) – another tensor, representing another image. If provided, it will
+be concatenated to the <cite>image_tensor</cite> across the width dimension and this result will be
+saved to disk</p></li>
+<li><p><strong>denormalize</strong> – whether or not to denormalize (using IMAGENET mean and std)
+the tensor before saving it to disk.</p></li>
+<li><p><strong>path</strong> – the path where the image will be saved</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="logging_module.html" class="btn btn-neutral float-right" title="Logging Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="dataset_module.html" class="btn btn-neutral float-left" title="Dataset Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Andrea Tupini, Mario Berti
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

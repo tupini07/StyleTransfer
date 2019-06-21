@@ -1,0 +1,440 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Terminal Interface &mdash; StyleTransfer  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Network Module" href="network_module.html" />
+    <link rel="prev" title="Welcome to StyleTransfer’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> StyleTransfer
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Modules:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Terminal Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network_module.html">Network Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset_module.html">Dataset Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="img_utils.html">Image Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging_module.html">Logging Module</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">StyleTransfer</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content style-external-links">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Terminal Interface</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/tupini07/StyleTransfer/blob/master/docs/terminal_interface.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="terminal-interface">
+<h1>Terminal Interface<a class="headerlink" href="#terminal-interface" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="stransfer">
+<h2>stransfer<a class="headerlink" href="#stransfer" title="Permalink to this headline">¶</a></h2>
+<p>Style Transfer</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>stransfer <span class="o">[</span>OPTIONS<span class="o">]</span> COMMAND <span class="o">[</span>ARGS<span class="o">]</span>...
+</pre></div>
+</div>
+<div class="section" id="stransfer-fast-st">
+<h3>fast-st<a class="headerlink" href="#stransfer-fast-st" title="Permalink to this headline">¶</a></h3>
+<p>Fast Style Transfer</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>stransfer fast-st <span class="o">[</span>OPTIONS<span class="o">]</span> COMMAND <span class="o">[</span>ARGS<span class="o">]</span>...
+</pre></div>
+</div>
+<div class="section" id="stransfer-fast-st-convert-image">
+<h4>convert-image<a class="headerlink" href="#stransfer-fast-st-convert-image" title="Permalink to this headline">¶</a></h4>
+<p>Converts the image at <cite>image-path</cite> using the network pretrained with <cite>style-name</cite>
+and saves the resulting transformed image in <cite>out-dir</cite>.</p>
+<p>A pretrained model should exist in <cite>data/models/</cite> for the specified <cite>style-name</cite>.</p>
+<p>The files in <cite>data/models/</cite> contain the style names in their file names. For example,
+<cite>fast_st_the_great_wave_epoch1.pth</cite> was trained with the style <cite>the_great_wave</cite></p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>stransfer fast-st convert-image <span class="o">[</span>OPTIONS<span class="o">]</span> IMAGE_PATH STYLE_NAME
+</pre></div>
+</div>
+<p class="rubric">Options</p>
+<dl class="option">
+<dt id="cmdoption-stransfer-fast-st-convert-image-o">
+<code class="sig-name descname">-o</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--out-dir</code><code class="sig-prename descclassname"> &lt;out_dir&gt;</code><a class="headerlink" href="#cmdoption-stransfer-fast-st-convert-image-o" title="Permalink to this definition">¶</a></dt>
+<dd><p>The results directory where the converted image will be saved</p>
+</dd></dl>
+
+<p class="rubric">Arguments</p>
+<dl class="option">
+<dt id="cmdoption-stransfer-fast-st-convert-image-arg-image-path">
+<code class="sig-name descname">IMAGE_PATH</code><code class="sig-prename descclassname"></code><a class="headerlink" href="#cmdoption-stransfer-fast-st-convert-image-arg-image-path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Required argument</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-fast-st-convert-image-arg-style-name">
+<code class="sig-name descname">STYLE_NAME</code><code class="sig-prename descclassname"></code><a class="headerlink" href="#cmdoption-stransfer-fast-st-convert-image-arg-style-name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Required argument</p>
+</dd></dl>
+
+</div>
+<div class="section" id="stransfer-fast-st-train">
+<h4>train<a class="headerlink" href="#stransfer-fast-st-train" title="Permalink to this headline">¶</a></h4>
+<p>Perform the training for the fast style transfer network. A checkpoint will be created
+at the end of each epoch in the <cite>data/models/</cite> directory.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>stransfer fast-st train <span class="o">[</span>OPTIONS<span class="o">]</span> STYLE_IMAGE_PATH
+</pre></div>
+</div>
+<p class="rubric">Options</p>
+<dl class="option">
+<dt id="cmdoption-stransfer-fast-st-train-e">
+<code class="sig-name descname">-e</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--epochs</code><code class="sig-prename descclassname"> &lt;epochs&gt;</code><a class="headerlink" href="#cmdoption-stransfer-fast-st-train-e" title="Permalink to this definition">¶</a></dt>
+<dd><p>How many epochs the training will take</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-fast-st-train-b">
+<code class="sig-name descname">-b</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--batch-size</code><code class="sig-prename descclassname"> &lt;batch_size&gt;</code><a class="headerlink" href="#cmdoption-stransfer-fast-st-train-b" title="Permalink to this definition">¶</a></dt>
+<dd><p>Batch size for training</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-fast-st-train-cw">
+<code class="sig-name descname">-cw</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--content-weight</code><code class="sig-prename descclassname"> &lt;content_weight&gt;</code><a class="headerlink" href="#cmdoption-stransfer-fast-st-train-cw" title="Permalink to this definition">¶</a></dt>
+<dd><p>The weight we will assign to the content loss during the optimization</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-fast-st-train-sw">
+<code class="sig-name descname">-sw</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--style-weight</code><code class="sig-prename descclassname"> &lt;style_weight&gt;</code><a class="headerlink" href="#cmdoption-stransfer-fast-st-train-sw" title="Permalink to this definition">¶</a></dt>
+<dd><p>The weight we will assign to the style loss during the optimization</p>
+</dd></dl>
+
+<p class="rubric">Arguments</p>
+<dl class="option">
+<dt id="cmdoption-stransfer-fast-st-train-arg-style-image-path">
+<code class="sig-name descname">STYLE_IMAGE_PATH</code><code class="sig-prename descclassname"></code><a class="headerlink" href="#cmdoption-stransfer-fast-st-train-arg-style-image-path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Required argument</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="stransfer-gatys-st">
+<h3>gatys-st<a class="headerlink" href="#stransfer-gatys-st" title="Permalink to this headline">¶</a></h3>
+<p>Run the original Gatys style transfer (slow). Both <cite>style-image</cite> and
+<cite>content-image</cite> should be the paths to the image we want to take the content from
+and the one we want to take the style from (respectively).</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>stransfer gatys-st <span class="o">[</span>OPTIONS<span class="o">]</span> CONTENT_IMAGE_PATH STYLE_IMAGE_PATH
+</pre></div>
+</div>
+<p class="rubric">Options</p>
+<dl class="option">
+<dt id="cmdoption-stransfer-gatys-st-n">
+<code class="sig-name descname">-n</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--out-name</code><code class="sig-prename descclassname"> &lt;out_name&gt;</code><a class="headerlink" href="#cmdoption-stransfer-gatys-st-n" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of the result file (transformed image)</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-gatys-st-s">
+<code class="sig-name descname">-s</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--steps</code><code class="sig-prename descclassname"> &lt;steps&gt;</code><a class="headerlink" href="#cmdoption-stransfer-gatys-st-s" title="Permalink to this definition">¶</a></dt>
+<dd><p>How many iterations should the optimization go through.</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-gatys-st-cw">
+<code class="sig-name descname">-cw</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--content-weight</code><code class="sig-prename descclassname"> &lt;content_weight&gt;</code><a class="headerlink" href="#cmdoption-stransfer-gatys-st-cw" title="Permalink to this definition">¶</a></dt>
+<dd><p>The weight we will assign to the content loss during the optimization</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-gatys-st-sw">
+<code class="sig-name descname">-sw</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--style-weight</code><code class="sig-prename descclassname"> &lt;style_weight&gt;</code><a class="headerlink" href="#cmdoption-stransfer-gatys-st-sw" title="Permalink to this definition">¶</a></dt>
+<dd><p>The weight we will assign to the style loss during the optimization</p>
+</dd></dl>
+
+<p class="rubric">Arguments</p>
+<dl class="option">
+<dt id="cmdoption-stransfer-gatys-st-arg-content-image-path">
+<code class="sig-name descname">CONTENT_IMAGE_PATH</code><code class="sig-prename descclassname"></code><a class="headerlink" href="#cmdoption-stransfer-gatys-st-arg-content-image-path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Required argument</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-gatys-st-arg-style-image-path">
+<code class="sig-name descname">STYLE_IMAGE_PATH</code><code class="sig-prename descclassname"></code><a class="headerlink" href="#cmdoption-stransfer-gatys-st-arg-style-image-path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Required argument</p>
+</dd></dl>
+
+</div>
+<div class="section" id="stransfer-video-st">
+<h3>video-st<a class="headerlink" href="#stransfer-video-st" title="Permalink to this headline">¶</a></h3>
+<p>Video Style Transfer</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>stransfer video-st <span class="o">[</span>OPTIONS<span class="o">]</span> COMMAND <span class="o">[</span>ARGS<span class="o">]</span>...
+</pre></div>
+</div>
+<div class="section" id="stransfer-video-st-convert-video">
+<h4>convert-video<a class="headerlink" href="#stransfer-video-st-convert-video" title="Permalink to this headline">¶</a></h4>
+<p>Converts the video at <cite>video-path</cite> using the network pretrained with <cite>style-name</cite>
+and saves the resulting transformed video in <cite>out-dir</cite>.</p>
+<p>A pretrained model should exist in <cite>data/models/</cite> for the specified <cite>style-name</cite>.</p>
+<p>The files in <cite>data/models/</cite> contain the style names in their file names. For example,
+<cite>video_st_starry_night_epoch3.pth</cite> was trained with the style <cite>starry_night</cite></p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>stransfer video-st convert-video <span class="o">[</span>OPTIONS<span class="o">]</span> VIDEO_PATH STYLE_NAME
+</pre></div>
+</div>
+<p class="rubric">Options</p>
+<dl class="option">
+<dt id="cmdoption-stransfer-video-st-convert-video-o">
+<code class="sig-name descname">-o</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--out-dir</code><code class="sig-prename descclassname"> &lt;out_dir&gt;</code><a class="headerlink" href="#cmdoption-stransfer-video-st-convert-video-o" title="Permalink to this definition">¶</a></dt>
+<dd><p>The results directory where the converted style will be saved</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-video-st-convert-video-fps">
+<code class="sig-name descname">--fps</code><code class="sig-prename descclassname"> &lt;fps&gt;</code><a class="headerlink" href="#cmdoption-stransfer-video-st-convert-video-fps" title="Permalink to this definition">¶</a></dt>
+<dd><p>The FPS that will be used when saving the transformed video</p>
+</dd></dl>
+
+<p class="rubric">Arguments</p>
+<dl class="option">
+<dt id="cmdoption-stransfer-video-st-convert-video-arg-video-path">
+<code class="sig-name descname">VIDEO_PATH</code><code class="sig-prename descclassname"></code><a class="headerlink" href="#cmdoption-stransfer-video-st-convert-video-arg-video-path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Required argument</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-video-st-convert-video-arg-style-name">
+<code class="sig-name descname">STYLE_NAME</code><code class="sig-prename descclassname"></code><a class="headerlink" href="#cmdoption-stransfer-video-st-convert-video-arg-style-name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Required argument</p>
+</dd></dl>
+
+</div>
+<div class="section" id="stransfer-video-st-train">
+<h4>train<a class="headerlink" href="#stransfer-video-st-train" title="Permalink to this headline">¶</a></h4>
+<p>Perform the training for the video style transfer network. A checkpoint will be created
+at the end of each epoch in the <cite>data/models/</cite> directory.</p>
+<p>We have the possibility of starting the training process for video style transfer from
+pretrained weights for a fast style transfer trained with the same <cite>style name</cite>. The
+weights that will be used are those of the highest epoch which correspond to that <cite>style_name</cite>.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>stransfer video-st train <span class="o">[</span>OPTIONS<span class="o">]</span> STYLE_IMAGE_PATH
+</pre></div>
+</div>
+<p class="rubric">Options</p>
+<dl class="option">
+<dt id="cmdoption-stransfer-video-st-train-e">
+<code class="sig-name descname">-e</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--epochs</code><code class="sig-prename descclassname"> &lt;epochs&gt;</code><a class="headerlink" href="#cmdoption-stransfer-video-st-train-e" title="Permalink to this definition">¶</a></dt>
+<dd><p>How many epochs the training will take</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-video-st-train-b">
+<code class="sig-name descname">-b</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--batch-size</code><code class="sig-prename descclassname"> &lt;batch_size&gt;</code><a class="headerlink" href="#cmdoption-stransfer-video-st-train-b" title="Permalink to this definition">¶</a></dt>
+<dd><p>Batch size for training</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-video-st-train-cw">
+<code class="sig-name descname">-cw</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--content-weight</code><code class="sig-prename descclassname"> &lt;content_weight&gt;</code><a class="headerlink" href="#cmdoption-stransfer-video-st-train-cw" title="Permalink to this definition">¶</a></dt>
+<dd><p>The weight we will assign to the content loss during the optimization</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-video-st-train-sw">
+<code class="sig-name descname">-sw</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--style-weight</code><code class="sig-prename descclassname"> &lt;style_weight&gt;</code><a class="headerlink" href="#cmdoption-stransfer-video-st-train-sw" title="Permalink to this definition">¶</a></dt>
+<dd><p>The weight we will assign to the style loss during the optimization</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-video-st-train-tw">
+<code class="sig-name descname">-tw</code><code class="sig-prename descclassname"></code><code class="sig-prename descclassname">, </code><code class="sig-name descname">--temporal-weight</code><code class="sig-prename descclassname"> &lt;temporal_weight&gt;</code><a class="headerlink" href="#cmdoption-stransfer-video-st-train-tw" title="Permalink to this definition">¶</a></dt>
+<dd><p>The weight we will assign to the temporal loss during the optimization</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-stransfer-video-st-train-use-pretrained-fast-st">
+<code class="sig-name descname">--use-pretrained-fast-st</code><code class="sig-prename descclassname"></code><a class="headerlink" href="#cmdoption-stransfer-video-st-train-use-pretrained-fast-st" title="Permalink to this definition">¶</a></dt>
+<dd><p>States whether we want to start training the video model from pretrained fast style transfer weights (which was trained on the same style name)</p>
+</dd></dl>
+
+<p class="rubric">Arguments</p>
+<dl class="option">
+<dt id="cmdoption-stransfer-video-st-train-arg-style-image-path">
+<code class="sig-name descname">STYLE_IMAGE_PATH</code><code class="sig-prename descclassname"></code><a class="headerlink" href="#cmdoption-stransfer-video-st-train-arg-style-image-path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Required argument</p>
+</dd></dl>
+
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="network_module.html" class="btn btn-neutral float-right" title="Network Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to StyleTransfer’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Andrea Tupini, Mario Berti
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

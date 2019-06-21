@@ -1,0 +1,625 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Network Module &mdash; StyleTransfer  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Dataset Module" href="dataset_module.html" />
+    <link rel="prev" title="Terminal Interface" href="terminal_interface.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> StyleTransfer
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Modules:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="terminal_interface.html">Terminal Interface</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Network Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset_module.html">Dataset Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="img_utils.html">Image Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging_module.html">Logging Module</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">StyleTransfer</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content style-external-links">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Network Module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/tupini07/StyleTransfer/blob/master/docs/network_module.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-stransfer.network">
+<span id="network-module"></span><h1>Network Module<a class="headerlink" href="#module-stransfer.network" title="Permalink to this headline">¶</a></h1>
+<p>This module holds the implementation of all the networks, their losses, and
+their components</p>
+<dl class="class">
+<dt id="stransfer.network.ContentLoss">
+<em class="property">class </em><code class="sig-prename descclassname">stransfer.network.</code><code class="sig-name descname">ContentLoss</code><span class="sig-paren">(</span><em class="sig-param">target</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#ContentLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.ContentLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implementation of the content loss</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>target</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a>) – the target image we want to use to calculate the content
+loss</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="stransfer.network.ContentLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#ContentLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.ContentLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the distance between the <cite>input</cite> image and the <cite>target</cite>.
+This is saved to a local <cite>loss</cite> attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.ContentLoss.set_target">
+<code class="sig-name descname">set_target</code><span class="sig-paren">(</span><em class="sig-param">target</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#ContentLoss.set_target"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.ContentLoss.set_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method allows us to set the target image of this content loss instance</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="stransfer.network.FeatureReconstructionLoss">
+<em class="property">class </em><code class="sig-prename descclassname">stransfer.network.</code><code class="sig-name descname">FeatureReconstructionLoss</code><span class="sig-paren">(</span><em class="sig-param">target</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#FeatureReconstructionLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.FeatureReconstructionLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implementation of the feature reconstruction loss.</p>
+<dl class="simple">
+<dt>..note::</dt><dd><p>this loss is currently not used since it doesn’t seem
+to provide much improvement over the normal <a class="reference internal" href="#stransfer.network.ContentLoss" title="stransfer.network.ContentLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContentLoss</span></code></a></p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="stransfer.network.FeatureReconstructionLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#FeatureReconstructionLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.FeatureReconstructionLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the feature loss of <cite>input</cite> with respect to the <cite>target</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="stransfer.network.ImageTransformNet">
+<em class="property">class </em><code class="sig-prename descclassname">stransfer.network.</code><code class="sig-name descname">ImageTransformNet</code><span class="sig-paren">(</span><em class="sig-param">style_image</em>, <em class="sig-param">batch_size=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#ImageTransformNet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.ImageTransformNet" title="Permalink to this definition">¶</a></dt>
+<dd><p>This the implementation of the fast style transform, image transform
+network, as defined in:</p>
+<p><a class="reference external" href="https://arxiv.org/abs/1603.08155">Perceptual Losses for Real-Time Style Transfer and Super-Resolution</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>style_image</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a>) – The image we want to use as as the style reference</p></li>
+<li><p><strong>batch_size</strong> – the size of the batch</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="stransfer.network.ImageTransformNet.get_optimizer">
+<code class="sig-name descname">get_optimizer</code><span class="sig-paren">(</span><em class="sig-param">optimizer=&lt;class 'torch.optim.adam.Adam'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#ImageTransformNet.get_optimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.ImageTransformNet.get_optimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get an initialized optimizer</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.ImageTransformNet.get_total_variation_regularization_loss">
+<code class="sig-name descname">get_total_variation_regularization_loss</code><span class="sig-paren">(</span><em class="sig-param">transformed_image</em>, <em class="sig-param">regularization_factor=1e-06</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#ImageTransformNet.get_total_variation_regularization_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.ImageTransformNet.get_total_variation_regularization_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate a regularization loss, which will tell us how ‘noisy’ is the current image.
+Penalize if it is very noisy.
+See: <a class="reference external" href="https://en.wikipedia.org/wiki/Total_variation_denoising#2D_signal_images">https://en.wikipedia.org/wiki/Total_variation_denoising#2D_signal_images</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>transformed_image</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a>) – image for which we will get the loss</p></li>
+<li><p><strong>regularization_factor</strong> – ‘weight’ to scale the loss</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the regularization loss</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.ImageTransformNet.process_image">
+<code class="sig-name descname">process_image</code><span class="sig-paren">(</span><em class="sig-param">image_path</em>, <em class="sig-param">style_name='nsp'</em>, <em class="sig-param">out_dir='results/'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#ImageTransformNet.process_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.ImageTransformNet.process_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Processes a given input image at <cite>image_path</cite> with a network pretrained on the
+style <cite>style_name</cite>.</p>
+<p>Saves the processed image to <cite>out_dir</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – path to the image we want to stylize</p></li>
+<li><p><strong>style_name</strong> – name of the style we want to apply to the image. Note that a
+pretrained model with said style must exist in <cite>data/models/</cite></p></li>
+<li><p><strong>out_dir</strong> – directory were the stylized image will be saved</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.ImageTransformNet.static_test">
+<code class="sig-name descname">static_test</code><span class="sig-paren">(</span><em class="sig-param">test_loader</em>, <em class="sig-param">loss_network</em>, <em class="sig-param">style_weight=100000</em>, <em class="sig-param">feature_weight=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#ImageTransformNet.static_test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.ImageTransformNet.static_test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tests the performance of a fast style transfer network on still images</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.ImageTransformNet.static_train">
+<code class="sig-name descname">static_train</code><span class="sig-paren">(</span><em class="sig-param">style_name='nsp'</em>, <em class="sig-param">epochs=50</em>, <em class="sig-param">style_weight=100000</em>, <em class="sig-param">content_weight=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#ImageTransformNet.static_train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.ImageTransformNet.static_train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trains a fast style transfer network for style transfer on still images.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="stransfer.network.ResidualBlock">
+<em class="property">class </em><code class="sig-prename descclassname">stransfer.network.</code><code class="sig-name descname">ResidualBlock</code><span class="sig-paren">(</span><em class="sig-param">in_channels</em>, <em class="sig-param">out_channels</em>, <em class="sig-param">kernel_size=3</em>, <em class="sig-param">stride=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#ResidualBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.ResidualBlock" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="stransfer.network.ResidualBlock.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#ResidualBlock.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.ResidualBlock.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a tensor input, pass it through the residual block, and
+return the output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="stransfer.network.StyleLoss">
+<em class="property">class </em><code class="sig-prename descclassname">stransfer.network.</code><code class="sig-name descname">StyleLoss</code><span class="sig-paren">(</span><em class="sig-param">target</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#StyleLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.StyleLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implementation of the style loss</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>target</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a>) – the tensor representing the style image we want to
+take as reference during training</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="stransfer.network.StyleLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#StyleLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.StyleLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare the gram matrix of the <cite>input</cite> with that of the <cite>target</cite>.
+By doing this we calculate the style loss, which is saved to a local
+<cite>loss</cite> attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.StyleLoss.gram_matrix">
+<code class="sig-name descname">gram_matrix</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#StyleLoss.gram_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.StyleLoss.gram_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the gram matrix for the <cite>input</cite> tensor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.StyleLoss.set_target">
+<code class="sig-name descname">set_target</code><span class="sig-paren">(</span><em class="sig-param">target</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#StyleLoss.set_target"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.StyleLoss.set_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method allows us to change the style target of the loss</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="stransfer.network.StyleNetwork">
+<em class="property">class </em><code class="sig-prename descclassname">stransfer.network.</code><code class="sig-name descname">StyleNetwork</code><span class="sig-paren">(</span><em class="sig-param">style_image</em>, <em class="sig-param">content_image=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#StyleNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.StyleNetwork" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implementation of the StyleNetwork as defined in</p>
+<p><a class="reference external" href="https://arxiv.org/abs/1508.06576">A Neural Algorithm of Artistic Style - Gatys (2015)</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>style_image</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a>) – tensor of the image we want to use as a source for the style</p></li>
+<li><p><strong>content_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.7)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a>]) – tensor of the image we want to use as the source for the content</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="stransfer.network.StyleNetwork.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input_image</em>, <em class="sig-param">content_image=None</em>, <em class="sig-param">style_image=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#StyleNetwork.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.StyleNetwork.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given an input image pass it through all layers in the network</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_image</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a>) – the image to pass through the network</p></li>
+<li><p><strong>content_image</strong> – if specified then this will change the curret target
+for the content loss</p></li>
+<li><p><strong>style_image</strong> – if specified then this will change the current target
+for the style loss</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.StyleNetwork.get_total_current_content_loss">
+<code class="sig-name descname">get_total_current_content_loss</code><span class="sig-paren">(</span><em class="sig-param">weight=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#StyleNetwork.get_total_current_content_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.StyleNetwork.get_total_current_content_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the sum of all the <cite>loss</cite> present in all
+<em>content</em> nodes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.StyleNetwork.get_total_current_feature_loss">
+<code class="sig-name descname">get_total_current_feature_loss</code><span class="sig-paren">(</span><em class="sig-param">weight=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#StyleNetwork.get_total_current_feature_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.StyleNetwork.get_total_current_feature_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the sum of all the <cite>loss</cite> present in all
+<em>content</em> nodes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.StyleNetwork.get_total_current_style_loss">
+<code class="sig-name descname">get_total_current_style_loss</code><span class="sig-paren">(</span><em class="sig-param">weight=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#StyleNetwork.get_total_current_style_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.StyleNetwork.get_total_current_style_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the sum of all the <cite>loss</cite> present in all
+<em>style</em> nodes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.StyleNetwork.run_through_pieces">
+<code class="sig-name descname">run_through_pieces</code><span class="sig-paren">(</span><em class="sig-param">input_g</em>, <em class="sig-param">until=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#StyleNetwork.run_through_pieces"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.StyleNetwork.run_through_pieces" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs ths input <cite>input_g</cite> through all the pieces of the network, or until the
+specified layer if <cite>until</cite> is not <cite>-1</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_g</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a>) – the input to run through the network</p></li>
+<li><p><strong>until</strong> – by default <cite>-1</cite>. If changed then it specified until which layer
+we want to run the input through</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the output of running the input through all the specified layers</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.StyleNetwork.train_gatys">
+<code class="sig-name descname">train_gatys</code><span class="sig-paren">(</span><em class="sig-param">style_image</em>, <em class="sig-param">content_image</em>, <em class="sig-param">steps=550</em>, <em class="sig-param">style_weight=100000</em>, <em class="sig-param">content_weight=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#StyleNetwork.train_gatys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.StyleNetwork.train_gatys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new image with the style of <cite>style_image</cite> and the content
+of <cite>content_image</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the converted image</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="stransfer.network.VideoTransformNet">
+<em class="property">class </em><code class="sig-prename descclassname">stransfer.network.</code><code class="sig-name descname">VideoTransformNet</code><span class="sig-paren">(</span><em class="sig-param">style_image</em>, <em class="sig-param">batch_size=4</em>, <em class="sig-param">fast_transfer_dict=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#VideoTransformNet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.VideoTransformNet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implementation of the video transform net.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>style_image</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a>) – image we’ll use as style reference</p></li>
+<li><p><strong>batch_size</strong> – size of the batch</p></li>
+<li><p><strong>fast_transfer_dict</strong> – state dict from a pretrained ‘fast style network’. It
+allows us to start training the video model from this, which allows to
+bootstrap training. It is recommended to do this since the current video set
+is not very big.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="stransfer.network.VideoTransformNet.get_temporal_loss">
+<code class="sig-name descname">get_temporal_loss</code><span class="sig-paren">(</span><em class="sig-param">old_content</em>, <em class="sig-param">old_stylized</em>, <em class="sig-param">current_content</em>, <em class="sig-param">current_stylized</em>, <em class="sig-param">temporal_weight=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#VideoTransformNet.get_temporal_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.VideoTransformNet.get_temporal_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the temporal loss
+See <a class="reference external" href="https://github.com/tupini07/StyleTransfer/issues/5">https://github.com/tupini07/StyleTransfer/issues/5</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>old_content</strong> – tensor representing the content of the previous frame</p></li>
+<li><p><strong>old_stylized</strong> – tensor representing the stylized previous frame</p></li>
+<li><p><strong>current_content</strong> – tensor representing the content of the current frame</p></li>
+<li><p><strong>current_stylized</strong> – tensor representing the stylized current frame</p></li>
+<li><p><strong>temporal_weight</strong> – weight for the temporal loss</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the temporal loss</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.VideoTransformNet.process_video">
+<code class="sig-name descname">process_video</code><span class="sig-paren">(</span><em class="sig-param">video_path</em>, <em class="sig-param">style_name='nsp'</em>, <em class="sig-param">working_dir='workdir/'</em>, <em class="sig-param">out_dir='results/'</em>, <em class="sig-param">fps=24.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#VideoTransformNet.process_video"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.VideoTransformNet.process_video" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies style to a single video, using pretrained weights. Note that the
+weights must exist, if not an exception will be raised.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>video_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – the path of the video to stylize</p></li>
+<li><p><strong>style_name</strong> – the name of the style to apply to the video. The weights for a video
+transform model using said style must exist in <cite>data/models/</cite></p></li>
+<li><p><strong>working_dir</strong> – directory where the transformed frames will be saved</p></li>
+<li><p><strong>out_dir</strong> – directory where the final transformed video will be saved</p></li>
+<li><p><strong>fps</strong> – the frames per second to use in the final video</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="stransfer.network.VideoTransformNet.video_train">
+<code class="sig-name descname">video_train</code><span class="sig-paren">(</span><em class="sig-param">style_name='nsp'</em>, <em class="sig-param">epochs=50</em>, <em class="sig-param">temporal_weight=0.8</em>, <em class="sig-param">style_weight=100000</em>, <em class="sig-param">feature_weight=1</em>, <em class="sig-param">content_weight=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#VideoTransformNet.video_train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.VideoTransformNet.video_train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trains the video network</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>style_name</strong> – the name of the style (used for saving and loading checkpoints)</p></li>
+<li><p><strong>epochs</strong> – how many epochs should the training go through</p></li>
+<li><p><strong>temporal_weight</strong> – the weight for the temporal loss</p></li>
+<li><p><strong>style_weight</strong> – the weight for the style loss</p></li>
+<li><p><strong>feature_weight</strong> – the weight for the feature loss</p></li>
+<li><p><strong>content_weight</strong> – the weight for the content loss</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="stransfer.network.adaptive_torch_load">
+<code class="sig-prename descclassname">stransfer.network.</code><code class="sig-name descname">adaptive_torch_load</code><span class="sig-paren">(</span><em class="sig-param">weights_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#adaptive_torch_load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.adaptive_torch_load" title="Permalink to this definition">¶</a></dt>
+<dd><p>When loading saved weights, we check if need to map them to
+either <cite>cuda</cite> or <cite>cpu</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>weights_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – paths of the weights to load</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the loaded weights</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="stransfer.network.get_tensorboard_writer">
+<code class="sig-prename descclassname">stransfer.network.</code><code class="sig-name descname">get_tensorboard_writer</code><span class="sig-paren">(</span><em class="sig-param">path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stransfer/network.html#get_tensorboard_writer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stransfer.network.get_tensorboard_writer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a TensorBoard writer at the folder with <cite>path</cite>.</p>
+<p>If <cite>path</cite> exists then it is deleted and recreated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – the path where our SummaryWriter will write</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">SummaryWriter</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>an initialized SummaryWriter</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="dataset_module.html" class="btn btn-neutral float-right" title="Dataset Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="terminal_interface.html" class="btn btn-neutral float-left" title="Terminal Interface" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Andrea Tupini, Mario Berti
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
