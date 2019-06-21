@@ -411,7 +411,7 @@ class StyleNetwork(nn.Module):
     def train_gatys(self, style_image: torch.Tensor,
                     content_image: torch.Tensor,
                     steps=550,
-                    style_weight=1000000,
+                    style_weight=100_000,
                     content_weight=1) -> torch.Tensor:
         """
         Creates a new image with the style of `style_image` and the content

@@ -14,7 +14,7 @@ LOGGER = c_logging.get_logger()
 @click.option('-s', '--steps', default=300, help="How many iterations should the optimization go through.")
 @click.option('-cw', '--content-weight', default=1,
               help="The weight we will assign to the content loss during the optimization")
-@click.option('-sw', '--style-weight', default=1_000_000,
+@click.option('-sw', '--style-weight', default=100_000,
               help="The weight we will assign to the style loss during the optimization")
 def gatys_st(style_image_path, content_image_path, out_name, steps, content_weight, style_weight):
     """
