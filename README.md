@@ -32,7 +32,8 @@ You can use `pipenv` to create an environment for this project, with all the dep
 
 If you don't know how to use _pipenv_ then just ensure you have `pipenv` installed, 
 clone this repository, `cd` into it, and run
-`pipenv install`. Then you can execute `pipenv shell` to activate the virtual environment.
+`pipenv install`. Then you can execute `pipenv shell` to activate the virtual environment, and execute the commands
+as specified in the next section.
 
 ## How to use
 
