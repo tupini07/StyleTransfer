@@ -8,15 +8,15 @@ LOGGER = c_logging.get_logger()
 
 
 @click.command()
-@click.argument('style-image-path')
 @click.argument('content-image-path')
+@click.argument('style-image-path')
 @click.option('-n', '--out-name', default='gatys_converted.png', help='The name of the result file (transformed image)')
 @click.option('-s', '--steps', default=300, help="How many iterations should the optimization go through.")
 @click.option('-cw', '--content-weight', default=1,
               help="The weight we will assign to the content loss during the optimization")
 @click.option('-sw', '--style-weight', default=100_000,
               help="The weight we will assign to the style loss during the optimization")
-def gatys_st(style_image_path, content_image_path, out_name, steps, content_weight, style_weight):
+def gatys_st(content_image_path, style_image_path, out_name, steps, content_weight, style_weight):
     """
     Run the original Gatys style transfer (slow). Both `style-image` and
     `content-image` should be the paths to the image we want to take the content from
